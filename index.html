@@ -84,24 +84,6 @@
             mCtx.drawImage(micImg, 0, 0);
             const frame = mCtx.getImageData(0, 0, micCanvas.width, micCanvas.height);
             
-            // Mengambil sampel warna latar belakang dari piksel pojok kiri atas (0,0)
-            const bgR = frame.data[0];
-            const bgG = frame.data[1];
-            const bgB = frame.data[2];
-
-            for (let i = 0; i < frame.data.length; i += 4) {
-                const r = frame.data[i];
-                const g = frame.data[i+1];
-                const b = frame.data[i+2];
-                
-                // Menghapus warna yang mirip dengan background (toleransi 30 untuk "sedikit abu-abu")
-                if (Math.abs(r - bgR) < 30 && Math.abs(g - bgG) < 30 && Math.abs(b - bgB) < 30) {
-                    frame.data[i + 3] = 0; // Transparankan piksel
-                }
-            }
-            mCtx.putImageData(frame, 0, 0);
-        };
-
         // --- LOGIKA OSD CHROMA KEY (LAMA) ---
         const osdCanvas = document.getElementById('osd-overlay-canvas');
         const oCtx = osdCanvas.getContext('2d');
