@@ -73,19 +73,6 @@
     </div>
 
     <script>
-        // --- LOGIKA MIKROFON (HANYA PNG TRANSPARAN) ---
-        const micCanvas = document.getElementById('mic-canvas');
-        const mCtx = micCanvas.getContext('2d');
-        const micImg = new Image();
-        
-        micImg.src = 'simple-voice-chat.png'; 
-        micImg.onload = () => {
-            micCanvas.width = micImg.width;
-            micCanvas.height = micImg.height;
-            // Langsung menggambar gambar ke canvas tanpa loop chroma key
-            mCtx.drawImage(micImg, 0, 0);
-        };
-
         // --- LOGIKA OSD CHROMA KEY (LAMA) ---
         const osdCanvas = document.getElementById('osd-overlay-canvas');
         const oCtx = osdCanvas.getContext('2d');
