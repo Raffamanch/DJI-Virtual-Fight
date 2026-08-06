@@ -21,38 +21,162 @@
             bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
-            height: 10vh; /* "Ukuran 10" - 10% dari tinggi layar. Ubah ke 10px jika dirasa terlalu besar */
+            height: 10vh;
             width: auto;
             z-index: 6;
             pointer-events: none;
-            image-rendering: pixelated; /* Mempertahankan kualitas pixel-art */
+            image-rendering: pixelated;
         }
 
-        /* OSD HUD (Top Right) */
-        #osd {
-            position: absolute; top: 25px; right: 35px;
-            color: #ffffff; text-shadow: 1px 1px 2px #000;
-            font-size: 16px; text-align: right; line-height: 1.6; pointer-events: none;
-            z-index: 5;
+        /* RC Stick Controller Overlay (Bawah Tengah, Padding Bottom 20px, Auto Fit agar tidak block OSD) */
+        #rc-sticks-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 7;
+            pointer-events: none;
         }
-        .osd-val { font-size: 20px; font-weight: bold; display: inline-block; width: 50px; }
+        .stick-box {
+            width: 70px;
+            height: 70px;
+            background: rgba(40, 45, 55, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .stick-cross-h {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .stick-cross-v {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .stick-ball {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #ffffff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            transition: transform 0.05s linear;
+        }
+
+        /* Top Action Bar (Switch View, Retry, Pause matching reference video) */
+        #top-action-bar {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 8;
+            pointer-events: auto;
+        }
+        .top-btn {
+            background: rgba(20, 25, 35, 0.7);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .top-btn:hover {
+            background: rgba(40, 50, 70, 0.8);
+        }
+        .btn-icon {
+            background: #ffffff;
+            color: #111;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
 
         /* MAIN MENU SCREEN */
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.1); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 30px 40px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { margin-bottom: 20px; font-size: 24px; letter-spacing: 1px; color: #ffeb3b; }
         p { line-height: 1.8; font-size: 15px; color: #eee; }
+        
+        /* Menu Dot ESC & Leave for tutorial */
+        #top-menu-bar {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            display: flex;
+            align-items: center;
+            z-index: 8;
+            pointer-events: auto;
+        }
+        #menu-dot-esc {
+            color: #ffffff;
+            font-size: 14px;
+            background: rgba(20, 25, 35, 0.7);
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
     <div id="canvas-container">
+        <!-- Top Left Menu Bar -->
+        <div id="top-menu-bar">
+            <div id="menu-dot-esc">NO &bull; 6/5</div>
+        </div>
+
+        <!-- Top Right Action Bar matching reference video -->
+        <div id="top-action-bar">
+            <button class="top-btn" id="btn-switch-view">Switch View <span class="btn-icon">C</span></button>
+            <button class="top-btn" id="btn-retry">Retry <span class="btn-icon">R</span></button>
+            <button class="top-btn" id="btn-pause">Pause <span class="btn-icon">ESC</span></button>
+        </div>
+
         <!-- Canvas untuk Gambar OSD -->
         <canvas id="osd-overlay-canvas"></canvas>
         
         <!-- Canvas untuk Mikrofon -->
         <canvas id="mic-canvas"></canvas>
+
+        <!-- RC Stick Controller Overlay (Bawah Tengah) -->
+        <div id="rc-sticks-container">
+            <div class="stick-box">
+                <div class="stick-cross-h"></div>
+                <div class="stick-cross-v"></div>
+                <div id="stick-left" class="stick-ball"></div>
+            </div>
+            <div class="stick-box">
+                <div class="stick-cross-h"></div>
+                <div class="stick-cross-v"></div>
+                <div id="stick-right" class="stick-ball"></div>
+            </div>
+        </div>
 
         <div id="instructions">
             <div id="menu-content">
@@ -64,11 +188,6 @@
                     <span style="color: #00ffcc;">✓ FOV 120 | TPV - FPV View |  Effect Cloud Move & Tumble Crash Max!</span>
                 </p>
             </div>
-        </div>
-
-        <div id="osd">
-            <div>ALT <span id="osd-alt" class="osd-val">0</span>m</div>
-            <div>SPD <span id="osd-spd" class="osd-val">0</span>km/h</div>
         </div>
     </div>
 
@@ -246,6 +365,7 @@
 
         let keys = { w: false, s: false, a: false, d: false };
         let mouseRoll = 0, mousePitch = 0;
+        let rawMouseX = 0, rawMouseY = 0;
 
         const MOUSE_SENSITIVITY = 0.0025; 
         const THROTTLE_SPEED = 4.0;
@@ -258,7 +378,14 @@
         // --- LISTENERS ---
         container.addEventListener('click', () => { container.requestPointerLock(); });
         inst.addEventListener('click', () => { container.requestPointerLock(); });
-        document.addEventListener('pointerlockchange', () => { inst.style.display = (document.pointerLockElement === container) ? 'none' : 'flex'; });
+        document.addEventListener('pointerlockchange', () => { 
+            const isLocked = (document.pointerLockElement === container);
+            inst.style.display = isLocked ? 'none' : 'flex';
+            if (!isLocked) {
+                rawMouseX = 0;
+                rawMouseY = 0;
+            }
+        });
 
         document.addEventListener('keydown', (e) => {
             if (['1','2','3','4'].includes(e.key)) {
@@ -278,12 +405,33 @@
             if (document.pointerLockElement !== container) return;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
             mousePitch = -e.movementY * MOUSE_SENSITIVITY;
+            
+            rawMouseX += e.movementX * 0.4;
+            rawMouseY += e.movementY * 0.4;
+            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
+            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
+        });
+
+        // UI button event bindings
+        document.getElementById('btn-switch-view').addEventListener('click', (e) => {
+            e.stopPropagation();
+            cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
+        });
+        document.getElementById('btn-retry').addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetDrone();
+        });
+        document.getElementById('btn-pause').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.exitPointerLock();
+            inst.style.display = 'flex';
         });
 
         function resetDrone() {
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
             isSpawnedSafe = true; 
+            rawMouseX = 0; rawMouseY = 0;
         }
 
         // --- TUMBLE & BOUNCE PHYSICS ---
@@ -351,6 +499,9 @@
                     const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'));
                     drone.rotation.multiply(deltaRotation).normalize();
                 }
+            } else {
+                rawMouseX *= Math.exp(-10.0 * dt);
+                rawMouseY *= Math.exp(-10.0 * dt);
             }
 
             if (drone.position.y > 1.5) {
@@ -427,8 +578,17 @@
 
             mouseRoll = 0; mousePitch = 0;
 
-            document.getElementById('osd-alt').innerText = Math.max(0, Math.round(drone.position.y));
-            document.getElementById('osd-spd').innerText = Math.round(drone.velocity.length() * 3.6);
+            // Update stick UI position based on keyboard/mouse inputs matching reference video
+            const stickLeft = document.getElementById('stick-left');
+            const stickRight = document.getElementById('stick-right');
+            
+            // Left Stick: Throttle (Vertical) & Yaw (Horizontal)
+            const leftY = (currentThrottle - 0.5) * -50; 
+            const leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 22;
+            stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
+
+            // Right Stick: Roll & Pitch controlled by Mouse movement
+            stickRight.style.transform = `translate(calc(-50% + ${rawMouseX}px), calc(-50% + ${rawMouseY}px))`;
 
             renderer.render(scene, camera);
         }
@@ -437,12 +597,10 @@
             camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             
-            // Update OSD layer size if window resizes
             osdCanvas.width = window.innerWidth;
             osdCanvas.height = window.innerHeight;
             if (osdImg.complete) {
                 oCtx.drawImage(osdImg, 0, 0, osdCanvas.width, osdCanvas.height);
-                // Apply old chroma key again on resize
                 const frame = oCtx.getImageData(0, 0, osdCanvas.width, osdCanvas.height);
                 for (let i = 0; i < frame.data.length; i += 4) {
                     if (frame.data[i] < 50 && frame.data[i+1] < 50 && frame.data[i+2] < 50) frame.data[i + 3] = 0;
