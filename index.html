@@ -9,10 +9,11 @@
         #canvas-container { width: 100%; height: 100%; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* OSD Canvas Overlay (Chroma Key / Fallback Render) */
+        /* OSD Canvas Overlay (Chroma Key & Noise Reduction Processor) */
         #osd-overlay-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none;
+            image-rendering: pixelated; /* Mencegah blur pada elemen HUD */
         }
 
         /* RC Stick Controller Overlay */
@@ -83,7 +84,7 @@
             <button class="top-btn" id="btn-pause">Pause <span class="btn-icon">ESC</span></button>
         </div>
 
-        <!-- Canvas untuk OSD Overlay (Drawn via 2D Canvas Fallback agar selalu tampil) -->
+        <!-- Canvas untuk OSD Image Overlay (Advanced Chroma Key & Noise Filtering) -->
         <canvas id="osd-overlay-canvas"></canvas>
 
         <div id="rc-sticks-container">
@@ -107,53 +108,89 @@
                     <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ FOV 120 | TPV - FPV View | OSD Rendered Successfully!</span>
+                    <span style="color: #00ffcc;">✓ Advanced OSD Chroma Key & Noise Reduction Active</span>
                 </p>
             </div>
         </div>
     </div>
 
     <script>
-        // --- RELIABLE OSD OVERLAY FALLBACK RENDERER ---
+        // --- ADVANCED CHROMA KEY & NOISE REDUCTION PROCESSOR ---
         const osdCanvas = document.getElementById('osd-overlay-canvas');
-        const oCtx = osdCanvas.getContext('2d');
+        const oCtx = osdCanvas.getContext('2d', { willReadFrequently: true });
+        const osdImg = new Image();
+        osdImg.src = 'hd.jpeg';
 
         function resizeOSD() {
             osdCanvas.width = window.innerWidth;
             osdCanvas.height = window.innerHeight;
+            if (osdImg.complete) {
+                renderProcessedOSD();
+            }
         }
-        resizeOSD();
-        window.addEventListener('resize', resizeOSD);
 
-        function drawOSD(flightModeName, throttleVal, speedVal, altVal) {
+        function renderProcessedOSD() {
             oCtx.clearRect(0, 0, osdCanvas.width, osdCanvas.height);
-            oCtx.save();
+            oCtx.drawImage(osdImg, 0, 0, osdCanvas.width, osdCanvas.height);
             
-            // Konfigurasi style font ala Betaflight OSD (Hijau Terang / Putih dengan bayangan hitam)
-            oCtx.font = 'bold 15px monospace';
-            oCtx.shadowColor = 'black';
-            oCtx.shadowBlur = 4;
-            oCtx.lineWidth = 3;
+            const imgData = oCtx.getImageData(0, 0, osdCanvas.width, osdCanvas.height);
+            const data = imgData.data;
+            const width = osdCanvas.width;
+            const height = osdCanvas.height;
 
-            // 1. Flight Mode di kiri atas
-            oCtx.fillStyle = '#00ffcc';
-            oCtx.fillText(`MTR [${flightModeName}]`, 45, 60);
+            // Step 1: Chroma Key & Background Removal + Noise Gate (Menghapus artifact/noise hitam latar belakang)
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
 
-            // 2. Crosshair di tengah layar (hanya muncul saat mode FPV)
-            if (cameraMode === "FPV") {
-                const cx = osdCanvas.width / 2;
-                const cy = osdCanvas.height / 2;
-                oCtx.strokeStyle = 'rgba(0, 255, 204, 0.7)';
-                oCtx.beginPath();
-                oCtx.arc(cx, cy, 12, 0, Math.PI * 2);
-                oCtx.stroke();
-
-                oCtx.fillStyle = '#ffffff';
-                oCtx.fillRect(cx - 2, cy - 2, 4, 4);
+                // Jika pixel gelap/mendekati hitam (noise latar belakang), buat transparan total
+                if (r < 55 && g < 55 && b < 55) {
+                    data[i+3] = 0; // Alpha 0 (Transparan)
+                } else {
+                    // Meningkatkan kecerahan & kontras elemen putih OSD agar terlihat tajam dan bersih
+                    let brightness = (r + g + b) / 3;
+                    if (brightness > 60) {
+                        data[i]   = Math.min(255, r * 1.2);
+                        data[i+1] = Math.min(255, g * 1.2);
+                        data[i+2] = Math.min(255, b * 1.2);
+                        data[i+3] = 255; // Solid opaque untuk teks OSD
+                    } else {
+                        data[i+3] = 0; // Reduksi noise pinggiran teks (edge noise cleanup)
+                    }
+                }
             }
 
-            oCtx.restore();
+            // Step 2: Median-like Noise Reduction Filter untuk membersihkan titik-titik noise terisolasi (salt and pepper noise)
+            const tempData = new Uint8ClampedArray(data);
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let idx = (y * width + x) * 4;
+                    
+                    // Cek jika pixel ini transparan, periksa tetangganya untuk menghilangkan noise sisa
+                    if (data[idx + 3] === 0) {
+                        let solidNeighbors = 0;
+                        // Periksa 4 tetangga terdekat (atas, bawah, kiri, kanan)
+                        if (tempData[((y-1) * width + x) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[((y+1) * width + x) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[(y * width + (x-1)) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[(y * width + (x+1)) * 4 + 3] > 128) solidNeighbors++;
+
+                        // Jika pixel terisolasi sendirian di antara area transparan (dianggap noise), bersihkan
+                        if (solidNeighbors === 0) {
+                            data[idx + 3] = 0;
+                        }
+                    }
+                }
+            }
+
+            oCtx.putImageData(imgData, 0, 0);
         }
+
+        osdImg.onload = () => {
+            resizeOSD();
+        };
+        window.addEventListener('resize', resizeOSD);
 
         const container = document.getElementById('canvas-container');
         const inst = document.getElementById('instructions');
@@ -314,7 +351,7 @@
 
         let currentThrottle = 0;
 
-        // --- EVENT LISTENERS (FIXED CLICK / PLAY LOCK) ---
+        // --- EVENT LISTENERS ---
         function requestLock() {
             container.requestPointerLock();
         }
@@ -507,9 +544,6 @@
 
             mouseRoll = 0; mousePitch = 0;
 
-            // Render OSD Overlay
-            drawOSD(modeCfg.name, currentThrottle, drone.velocity.length(), drone.position.y);
-
             // Update stick UI positions
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
@@ -520,13 +554,6 @@
 
             renderer.render(scene, camera);
         }
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight; 
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            resizeOSD();
-        });
 
         animate();
     </script>
