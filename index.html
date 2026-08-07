@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FPV PC Simulator - Sunset Track & Realistic Shading</title>
+    <title>FPV PC Simulator - Sunset Track</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #221229; font-family: monospace; position: fixed; }
@@ -17,7 +17,7 @@
             image-rendering: pixelated;
         }
 
-        /* RC Stick Controller Overlay (PC) - Rounded 5-8px soft box style */
+        /* RC Stick Controller Overlay (PC) - Zero / Slightly Rounded Box Style */
         #rc-sticks-container {
             position: absolute;
             bottom: 75px;
@@ -31,23 +31,22 @@
         .stick-box {
             width: 82px;
             height: 82px;
-            background: rgba(20, 25, 35, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.28);
-            border-radius: 6px; /* Lightly rounded corner (around 5-8px) */
+            background: rgba(20, 25, 35, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 1px; /* Slightly rounded / sharp square look */
             position: relative;
-            box-shadow: 0 5px 12px rgba(0,0,0,0.33);
             overflow: hidden;
         }
         .stick-cross-h {
-            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
+            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.4);
         }
         .stick-cross-v {
-            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
+            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.4);
         }
         .stick-ball {
             position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
+            transition: transform 0.05s linear;
         }
 
         /* Touch Joysticks Overlay (Mobile Only) */
@@ -86,7 +85,6 @@
             border-radius: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
         /* Top Action Bar & Home / RTH UI */
@@ -94,15 +92,15 @@
             position: absolute; top: max(15px, env(safe-area-inset-top)); right: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto;
         }
         .top-btn {
-            background: rgba(20, 25, 35, 0.75); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.25);
-            padding: 6px 14px; border-radius: 6px; font-family: monospace; font-size: 14px; cursor: pointer;
-            display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            background: rgba(20, 25, 35, 0.85); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 6px 14px; border-radius: 1px; font-family: monospace; font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
         }
-        .top-btn:hover { background: rgba(40, 50, 70, 0.85); }
-        .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 4px; }
+        .top-btn:hover { background: rgba(40, 50, 70, 0.95); }
+        .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 1px; }
         
-        #rth-btn { background: rgba(180, 40, 40, 0.8); border-color: rgba(255, 100, 100, 0.4); }
-        #rth-btn.active { background: rgba(40, 180, 80, 0.85); border-color: rgba(100, 255, 140, 0.5); animation: pulseRth 1s infinite alternate; }
+        #rth-btn { background: rgba(180, 40, 40, 0.9); border-color: rgba(255, 100, 100, 0.5); }
+        #rth-btn.active { background: rgba(40, 180, 80, 0.9); border-color: rgba(100, 255, 140, 0.6); animation: pulseRth 1s infinite alternate; }
         @keyframes pulseRth { 0% { opacity: 0.8; } 100% { opacity: 1; transform: scale(1.05); } }
 
         /* Notification Toast for Home Point Updated */
@@ -111,15 +109,14 @@
             top: 80px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(20, 25, 35, 0.88);
-            border: 1px solid rgba(0, 255, 255, 0.5);
+            background: rgba(20, 25, 35, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.6);
             color: #00ffff;
             padding: 8px 20px;
-            border-radius: 6px;
+            border-radius: 1px;
             font-family: monospace;
             font-size: 14px;
             z-index: 12;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             transition: opacity 0.5s ease;
             opacity: 0;
             pointer-events: none;
@@ -130,15 +127,15 @@
 
         /* Top Menu Bar */
         #top-menu-bar { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
-        #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.75); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 1px; border: 1px solid rgba(255,255,255,0.3); cursor: pointer; }
         #mobile-mode-btn {
-            color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 1px; border: 1px solid rgba(255,235,59,0.5); cursor: pointer;
             display: none; font-weight: bold;
         }
 
         /* MAIN MENU SCREEN */
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(10, 5, 15, 0.4); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
-        #menu-content { background: rgba(28, 20, 36, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 150, 200, 0.3); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); pointer-events: auto; max-width: 90%; }
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(10, 5, 15, 0.5); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
+        #menu-content { background: rgba(28, 20, 36, 0.98); padding: 25px 30px; border: 1px solid rgba(255, 150, 200, 0.4); border-radius: 2px; pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ff9cf9; }
         p { line-height: 1.6; font-size: 14px; color: #eee; }
     </style>
@@ -164,7 +161,7 @@
 
         <canvas id="osd-overlay-canvas"></canvas>
 
-        <!-- RC Sticks Overlay (PC) - Lightly Rounded Corners (6px) -->
+        <!-- RC Sticks Overlay (PC) - Flat 1px Corner Style -->
         <div id="rc-sticks-container">
             <div class="stick-box">
                 <div class="stick-cross-h"></div>
@@ -196,7 +193,7 @@
                     <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br>
                     <b>[ Click RTH Button ]</b> : Auto-Return to Home (H Point)<br><br>
-                    <span style="color: #ff9cf9;">✓ FOV 135° Wide View & Pink-Blue Sunset Shading Active</span>
+                    <span style="color: #ff9cf9;">✓ FOV 135° Wide View & Flat Unshaded Materials Active</span>
                 </p>
             </div>
         </div>
@@ -214,7 +211,7 @@
                 <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
                 <b>[ Tap RTH Button ]</b> : Auto-Return to Home Point<br><br>
-                <span style="color: #ff9cf9;">✓ FOV 135° & Sunset Shading Active</span>
+                <span style="color: #ff9cf9;">✓ FOV 135° & Flat Unshaded Active</span>
             `;
         }
 
@@ -320,10 +317,7 @@
         window.addEventListener('orientationchange', () => { setTimeout(handleResize, 300); });
         setTimeout(handleResize, 100);
 
-        scene.add(new THREE.AmbientLight(0xd47bc2, 0.65));
-        const sunLight = new THREE.DirectionalLight(0xffb366, 1.2);
-        sunLight.position.set(250, 120, -300);
-        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
@@ -339,7 +333,7 @@
 
         const floorGeo = new THREE.PlaneGeometry(5000, 5000);
         floorGeo.rotateX(-Math.PI / 2);
-        const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8, metalness: 0.1 });
+        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
 
         const homeGroup = new THREE.Group();
@@ -400,8 +394,8 @@
         blockTex.wrapS = THREE.RepeatWrapping; blockTex.wrapT = THREE.RepeatWrapping;
         blockTex.repeat.set(2, 8);
 
-        const wallMat = new THREE.MeshStandardMaterial({ map: blockTex, roughness: 0.5 });
-        const gateMat = new THREE.MeshStandardMaterial({ color: 0xff477e, emissive: 0x551122, roughness: 0.3 });
+        const wallMat = new THREE.MeshBasicMaterial({ map: blockTex });
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff477e });
 
         function createTrackTower(x, z, width, height, depth) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
@@ -440,15 +434,15 @@
 
         const droneGroup = new THREE.Group();
         const coreGeo = new THREE.BoxGeometry(1.2, 0.4, 1.8);
-        const coreMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8 });
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a });
         droneGroup.add(new THREE.Mesh(coreGeo, coreMat));
 
-        const armMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5 });
+        const armMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
         const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 3.2), armMat); arm1.rotation.y = Math.PI / 4;
         const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 3.2), armMat); arm2.rotation.y = -Math.PI / 4;
         droneGroup.add(arm1, arm2);
 
-        const propMat = new THREE.MeshStandardMaterial({ color: 0xff6bcb, emissive: 0x441122 });
+        const propMat = new THREE.MeshBasicMaterial({ color: 0xff6bcb });
         const offsets = [{x:1.1, z:1.1}, {x:-1.1, z:1.1}, {x:1.1, z:-1.1}, {x:-1.1, z:-1.1}];
         const propMeshes = [];
 
