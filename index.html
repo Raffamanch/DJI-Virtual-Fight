@@ -17,7 +17,7 @@
 
         #rc-sticks-container {
             position: absolute;
-            bottom: 25px;
+            bottom: 120px;
             width: 100%;
             display: flex;
             justify-content: space-between;
@@ -105,7 +105,6 @@
     <script>
         let isTouchDevice = false;
 
-        // Deteksi Touch untuk HP/Tablet secara otomatis
         window.addEventListener('touchstart', function onFirstTouch() {
             isTouchDevice = true;
             document.getElementById('rc-sticks-container').style.display = 'flex';
@@ -121,7 +120,6 @@
         const container = document.getElementById('canvas-container');
         const inst = document.getElementById('instructions');
 
-        // Fungsi klik normal untuk mulai game (Pointer Lock standar PC)
         function startGame() {
             if (!isTouchDevice) {
                 container.requestPointerLock();
@@ -138,7 +136,6 @@
             }
         });
 
-        // --- CHROMA KEY & NOISE REDUCTION PROCESSOR ---
         const osdCanvas = document.getElementById('osd-overlay-canvas');
         const oCtx = osdCanvas.getContext('2d', { willReadFrequently: true });
         const osdImg = new Image();
@@ -214,7 +211,6 @@
         skyLight.position.set(100, 300, 50);
         scene.add(skyLight);
 
-        // --- ENVIRONMENT ---
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
         const ctxFloor = floorCanvas.getContext('2d');
