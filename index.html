@@ -57,7 +57,7 @@
             height: 100%;
             z-index: 9;
             pointer-events: none;
-            display: none; /* Default hidden, enabled via JS for touch devices */
+            display: none;
         }
         .touch-pad {
             position: absolute;
@@ -99,14 +99,21 @@
         .top-btn:hover { background: rgba(40, 50, 70, 0.8); }
         .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 4px; }
 
+        /* Top Menu Bar */
+        #top-menu-bar { position: absolute; top: 20px; left: 30px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
+        #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        
+        /* Mobile Flight Mode Selector Button (Visible only on phone) */
+        #mobile-mode-btn {
+            color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            display: none; font-weight: bold;
+        }
+
         /* MAIN MENU SCREEN */
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.1); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 30px 40px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 20px; font-size: 24px; letter-spacing: 1px; color: #ffeb3b; }
         p { line-height: 1.8; font-size: 15px; color: #eee; }
-        
-        #top-menu-bar { position: absolute; top: 20px; left: 30px; display: flex; align-items: center; z-index: 8; pointer-events: auto; }
-        #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -115,12 +122,13 @@
     <div id="canvas-container">
         <div id="top-menu-bar">
             <div id="menu-dot-esc">NO &bull; 6/5</div>
+            <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
         <div id="top-action-bar">
             <button class="top-btn" id="btn-switch-view">Switch View <span class="btn-icon">C</span></button>
             <button class="top-btn" id="btn-retry">Retry <span class="btn-icon">R</span></button>
-            <button class="top-btn" id="btn-pause">Pause <span class="btn-icon">ESC</span></button>
+            <button class="top-btn" id="btn-pause">Pause <span class="btn-icon" id="pause-icon">ESC</span></button>
         </div>
 
         <!-- Canvas untuk OSD Image Overlay -->
@@ -158,7 +166,7 @@
                     <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ PC & Mobile Touch Controls Supported</span>
+                    <span style="color: #00ffcc;">✓ Tap Top Menu 'MODE' on Mobile to Switch Flight Modes</span>
                 </p>
             </div>
         </div>
@@ -169,12 +177,14 @@
 
         if (isMobile) {
             document.getElementById('touch-controls').style.display = 'block';
+            document.getElementById('mobile-mode-btn').style.display = 'block';
+            document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
                 <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
-                <b>[ Top Buttons ]</b> : Switch View / Retry<br><br>
-                <span style="color: #00ffcc;">✓ Mobile Touch Joystick Active</span>
+                <b>[ Top Menu 'MODE' ]</b> : Tap to Cycle Flight Mode<br><br>
+                <span style="color: #00ffcc;">✓ Mobile Controls & Mode Switcher Active</span>
             `;
         }
 
@@ -386,9 +396,8 @@
         let mouseRoll = 0, mousePitch = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
-        // Touch Control Variables
-        let touchLeftValX = 0, touchLeftValY = 0; // Left: Yaw & Throttle
-        let touchRightValX = 0, touchRightValY = 0; // Right: Roll & Pitch
+        let touchLeftValX = 0, touchLeftValY = 0;
+        let touchRightValX = 0, touchRightValY = 0;
 
         const MOUSE_SENSITIVITY = 0.0025; 
         const THROTTLE_SPEED = 4.0;
@@ -416,7 +425,11 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (['1','2','3','4'].includes(e.key)) { activeMode = parseInt(e.key); return; }
+            if (['1','2','3','4'].includes(e.key)) {
+                activeMode = parseInt(e.key);
+                updateMobileModeButtonText();
+                return;
+            }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true;
@@ -434,7 +447,20 @@
             rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
         });
 
-        // Touch Joystick Logic
+        function updateMobileModeButtonText() {
+            const btn = document.getElementById('mobile-mode-btn');
+            if (btn) {
+                btn.innerText = `MODE: ${MODES[activeMode].name}`;
+            }
+        }
+
+        // Tap mobile top menu button to cycle flight modes (1 -> 2 -> 3 -> 4 -> 1)
+        document.getElementById('mobile-mode-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            activeMode = (activeMode % 4) + 1;
+            updateMobileModeButtonText();
+        });
+
         function setupTouchJoystick(padId, knobId, callback) {
             const pad = document.getElementById(padId);
             const knob = document.getElementById(knobId);
@@ -493,7 +519,7 @@
         if (isMobile) {
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
                 touchLeftValX = x;
-                touchLeftValY = y; // Up is negative y (-1)
+                touchLeftValY = y;
             });
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
                 touchRightValX = x;
@@ -564,9 +590,7 @@
             let inputYaw = 0;
 
             if (isMobile) {
-                // Mobile flight inputs from virtual joysticks
-                // Left stick Y: throttle (Up = -1 -> Throttle increases)
-                const targetThrottle = (-touchLeftValY + 1) / 2; // maps -1..1 to 0..1
+                const targetThrottle = (-touchLeftValY + 1) / 2;
                 currentThrottle = targetThrottle;
                 inputYaw = touchLeftValX * YAW_RATE * dt;
 
@@ -583,7 +607,6 @@
                     drone.rotation.multiply(deltaRotation).normalize();
                 }
             } else {
-                // PC flight inputs via Keyboard & Mouse
                 if (document.pointerLockElement === container) {
                     if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
                     if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
@@ -673,7 +696,6 @@
 
             mouseRoll = 0; mousePitch = 0;
 
-            // Update PC RC Stick Visual Overlay
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
             let leftY, leftX, rightX, rightY;
