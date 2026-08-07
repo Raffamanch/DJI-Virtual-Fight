@@ -163,7 +163,7 @@
                     <b>[ W / S ]</b> : MOVE FORWARD / BACKWARD (Throttle) | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ DJI Avata 1 Sound & FOV 140° Loaded</span>
+                    <span style="color: #00ffcc;">✓ DJI Avata 1 Model Loaded (FOV: 140°)</span>
                 </p>
             </div>
         </div>
@@ -181,88 +181,8 @@
                 <b>[ Left Joystick ]</b> : Forward/Back & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
                 <b>[ Top Menu 'MODE' ]</b> : Tap to Cycle Flight Mode<br><br>
-                <span style="color: #00ffcc;">✓ DJI Avata 1 Sound & Audio Synth Active</span>
+                <span style="color: #00ffcc;">✓ DJI Avata 1 & Auto-Resize Fix Active (FOV: 140°)</span>
             `;
-        }
-
-        // Procedural Audio Engine (Web Audio API for realistic high-RPM ducted fan sound)
-        let audioCtx = null;
-        let motorOsc1 = null, motorOsc2 = null, motorGain = null, noiseNode = null, noiseGain = null, filterNode = null;
-        let audioInitialized = false;
-
-        function initAudio() {
-            if (audioInitialized) return;
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            audioCtx = new AudioContext();
-
-            // Main motor whine (twin sawtooth oscillators for rich harmonic ducted sound)
-            motorOsc1 = audioCtx.createOscillator();
-            motorOsc1.type = 'sawtooth';
-            motorOsc1.frequency.setValueAtTime(65, audioCtx.currentTime);
-
-            motorOsc2 = audioCtx.createOscillator();
-            motorOsc2.type = 'triangle';
-            motorOsc2.frequency.setValueAtTime(130, audioCtx.currentTime);
-
-            motorGain = audioCtx.createGain();
-            motorGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-
-            // Filter for wind / blade chop simulation
-            filterNode = audioCtx.createBiquadFilter();
-            filterNode.type = 'bandpass';
-            filterNode.frequency.setValueAtTime(300, audioCtx.currentTime);
-            filterNode.Q.setValueAtTime(3.0, audioCtx.currentTime);
-
-            // White noise buffer for rushing air effect
-            const bufferSize = 2 * audioCtx.sampleRate;
-            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                output[i] = Math.random() * 2 - 1;
-            }
-
-            noiseNode = audioCtx.createBufferSource();
-            noiseNode.buffer = noiseBuffer;
-            noiseNode.loop = true;
-
-            noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-
-            // Connect graph
-            motorOsc1.connect(motorGain);
-            motorOsc2.connect(motorGain);
-            motorGain.connect(filterNode);
-            filterNode.connect(audioCtx.destination);
-
-            noiseNode.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-
-            motorOsc1.start();
-            motorOsc2.start();
-            noiseNode.start();
-
-            audioInitialized = true;
-        }
-
-        function updateAudioEngine(throttleAmount, speed) {
-            if (!audioInitialized || !audioCtx) return;
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            // Frequency scales smoothly with throttle input and velocity magnitude
-            const baseFreq = 65 + throttleAmount * 220 + speed * 3.5;
-            motorOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
-            motorOsc2.frequency.setTargetAtTime(baseFreq * 2.0, audioCtx.currentTime, 0.05);
-
-            // Volume increases with power delivery
-            const targetGain = 0.05 + throttleAmount * 0.18 + Math.min(speed * 0.005, 0.1);
-            motorGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.05);
-
-            // Filter frequency changes with airspeed for realistic Doppler/wind rush
-            filterNode.frequency.setTargetAtTime(250 + speed * 18.0, audioCtx.currentTime, 0.05);
-            noiseGain.gain.setTargetAtTime(0.02 + Math.min(speed * 0.004, 0.08), audioCtx.currentTime, 0.05);
         }
 
         const osdCanvas = document.getElementById('osd-overlay-canvas');
@@ -335,7 +255,7 @@
         scene.background = new THREE.Color(0xa4caff);
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        // Field of View set to 140 degrees
+        // Set Field of View to 140 degrees
         const camera = new THREE.PerspectiveCamera(140, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -451,28 +371,35 @@
 
         // DJI Avata 1 Drone Shape Construction
         const droneGroup = new THREE.Group();
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x222225 });
-        const guardMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1c });
+        const bodyMat = new THREE.MeshBasicMaterial({ color: darkGray = 0x222225 });
+        const accentMat = new THREE.MeshBasicMaterial({ color: 0xff6600 }); // DJI orange accent
+        const guardMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1c, wireframe: false });
 
+        // Main Ducted Body / Fuselage
         const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 2.0), bodyMat);
         fuselage.position.y = 0.05;
         droneGroup.add(fuselage);
 
+        // Camera Gimbal Pod at front
         const camPod = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
         camPod.position.set(0, -0.05, 1.05);
         droneGroup.add(camPod);
 
+        // Integrated Ducted Propeller Guards (Avata style circular rings)
         const ringGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.5, 24, 1, true);
+        const propMat = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });
         const bladeMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
 
         const propMeshes = [];
         const ductedOffsets = [{x: 1.15, z: 0.9}, {x: -1.15, z: 0.9}, {x: 1.15, z: -0.9}, {x: -1.15, z: -0.9}];
 
         ductedOffsets.forEach(pos => {
+            // Duct ring
             const ring = new THREE.Mesh(ringGeo, guardMat);
             ring.position.set(pos.x, 0.1, pos.z);
             droneGroup.add(ring);
 
+            // Propeller blade inside duct
             const blade = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.03, 0.18), bladeMat);
             blade.position.set(pos.x, 0.1, pos.z);
             droneGroup.add(blade);
@@ -495,7 +422,7 @@
             4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
         };
         let activeMode = 1;
-        let cameraMode = "TPV"; // default to third person view from behind
+        let cameraMode = "TPV"; // default to Third Person View from behind as requested
 
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let isSpawnedSafe = true; 
@@ -508,12 +435,14 @@
         let touchRightValX = 0, touchRightValY = 0;
 
         const MOUSE_SENSITIVITY = 0.0025; 
+        const THROTTLE_SPEED = 4.0;
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
         const CAMERA_UPTILT = 28 * (Math.PI / 180);
 
+        let currentThrottle = 0;
+
         function startGameSession() {
-            initAudio();
             handleResize();
             inst.style.display = 'none';
             if (!isMobile) {
@@ -649,7 +578,7 @@
 
         function resetDrone() {
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
-            tumbleRotationVelocity.set(0, 0, 0);
+            currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
             handleResize();
@@ -695,10 +624,10 @@
             const modeCfg = MODES[activeMode];
 
             let inputYaw = 0;
-            let forwardInput = 0; 
+            let forwardInput = 0; // W/S or left stick vertical control for forward/backward movement
 
             if (isMobile) {
-                forwardInput = -touchLeftValY; 
+                forwardInput = -touchLeftValY; // up pushes forward, down pulls backward
                 inputYaw = touchLeftValX * YAW_RATE * dt;
 
                 const targetPitch = -touchRightValY * modeCfg.maxAngle;
@@ -750,22 +679,19 @@
                 }
             }
 
+            // Directional motion based on heading / forward input
             const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(drone.rotation);
             const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
             
+            // Apply forward/backward push when W/S or joystick forward is used
             const moveForce = forwardDir.multiplyScalar(forwardInput * modeCfg.maxThrust * 0.75);
-            const thrust = localUp.multiplyScalar(modeCfg.maxThrust * 0.5); 
+            const thrust = localUp.multiplyScalar(modeCfg.maxThrust * 0.5); // hover baseline
             const gravityForce = new THREE.Vector3(0, -GRAVITY, 0);
 
             const accel = new THREE.Vector3().addVectors(thrust, gravityForce).add(moveForce);
             drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
-
-            // Update procedural audio pitch & volume based on current throttle and ground/flight speed
-            const currentSpeed = drone.velocity.length();
-            const throttleIntensity = Math.abs(forwardInput) + 0.5;
-            updateAudioEngine(throttleIntensity, currentSpeed);
 
             if (drone.position.y < 0.3) {
                 drone.position.y = 0.3; 
@@ -789,7 +715,7 @@
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            propMeshes.forEach(prop => { prop.rotation.y += (0.4 + throttleIntensity * 0.6); });
+            if (Math.abs(forwardInput) > 0.05 || !isMobile) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
 
             cloudGroup.children.forEach(c => {
                 c.position.x += 1.5 * dt;
@@ -804,6 +730,7 @@
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
+                // Third person view from behind looking at the drone
                 const backOffset = new THREE.Vector3(0, 2.2, 6.5).applyQuaternion(drone.rotation);
                 camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.2);
                 camera.lookAt(drone.position);
