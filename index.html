@@ -17,7 +17,7 @@
             image-rendering: pixelated;
         }
 
-        /* RC Stick Controller Overlay (PC) - Rounded Pill/Circle Style */
+        /* RC Stick Controller Overlay (PC) - Rounded 5-8px soft box style */
         #rc-sticks-container {
             position: absolute;
             bottom: 75px;
@@ -33,7 +33,7 @@
             height: 82px;
             background: rgba(20, 25, 35, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.28);
-            border-radius: 50%; /* Rounded circular stick pad */
+            border-radius: 6px; /* Lightly rounded corner (around 5-8px) */
             position: relative;
             box-shadow: 0 5px 12px rgba(0,0,0,0.33);
             overflow: hidden;
@@ -164,7 +164,7 @@
 
         <canvas id="osd-overlay-canvas"></canvas>
 
-        <!-- RC Sticks Overlay (PC) - Rounded 50% Circular Pads -->
+        <!-- RC Sticks Overlay (PC) - Lightly Rounded Corners (6px) -->
         <div id="rc-sticks-container">
             <div class="stick-box">
                 <div class="stick-cross-h"></div>
