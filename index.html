@@ -16,25 +16,25 @@
             image-rendering: pixelated;
         }
 
-        /* RC Stick Controller Overlay (Posisi digeser sedikit ke atas) */
+        /* RC Stick Controller Overlay (Diperbesar & Diposisikan lebih ke atas) */
         #rc-sticks-container {
             position: absolute;
-            bottom: 65px;
+            bottom: 85px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 15px;
+            gap: 20px;
             z-index: 7;
             pointer-events: none;
         }
         .stick-box {
-            width: 70px;
-            height: 70px;
+            width: 95px;
+            height: 95px;
             background: rgba(40, 45, 55, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 8px;
+            border: 1.5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
             position: relative;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.35);
         }
         .stick-cross-h {
             position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
@@ -43,9 +43,9 @@
             position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
         }
         .stick-ball {
-            position: absolute; width: 14px; height: 14px; background: #ffffff; border-radius: 50%;
+            position: absolute; width: 18px; height: 18px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5); transition: transform 0.05s linear;
         }
 
         /* Top Action Bar */
@@ -108,7 +108,7 @@
                     <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ Stick Overlay Position Adjusted Upwards</span>
+                    <span style="color: #00ffcc;">✓ Stick Overlay Enlarged & Adjusted Upwards</span>
                 </p>
             </div>
         </div>
@@ -358,8 +358,8 @@
             
             rawMouseX += e.movementX * 0.4;
             rawMouseY += e.movementY * 0.4;
-            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
-            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
+            rawMouseX = Math.max(-30, Math.min(30, rawMouseX));
+            rawMouseY = Math.max(-30, Math.min(30, rawMouseY));
         });
 
         document.getElementById('btn-switch-view').addEventListener('click', (e) => {
@@ -512,8 +512,8 @@
 
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
-            const leftY = (currentThrottle - 0.5) * -50; 
-            const leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 22;
+            const leftY = (currentThrottle - 0.5) * -65; 
+            const leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 28;
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rawMouseX}px), calc(-50% + ${rawMouseY}px))`;
 
