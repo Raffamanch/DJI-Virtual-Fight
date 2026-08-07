@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>FPV PC Simulator - Velocidrone Clean Day Track</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; touch-action: none; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; }
         #canvas-container { width: 100%; height: 100%; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
         
@@ -92,11 +92,11 @@
             <div id="menu-content">
                 <h1>VelociDrone</h1>
                 <p id="instruction-text">
-                    <b>[ TAP / CLICK TO START / PLAY ]</b><br><br>
+                    <b>[ CLICK TO START / PLAY ]</b><br><br>
                     <b>[ W / S or UP / DOWN ]</b> : THROTTLE | <b>[ A / D or LEFT / RIGHT ]</b> : YAW<br>
-                    <b>[ Mouse Move / Drag & Click ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
+                    <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ PC Keyboard, Mouse Drag & Mobile Touch Supported</span>
+                    <span style="color: #00ffcc;">✓ Standard Pointer Lock Mode Restored</span>
                 </p>
             </div>
         </div>
@@ -105,74 +105,37 @@
     <script>
         let isTouchDevice = false;
 
-        function startGame(e) {
-            if (e) e.stopPropagation();
-            
-            // Cek apakah ini interaksi touch atau mouse biasa
-            if (e && e.type === 'touchstart') {
-                isTouchDevice = true;
-                document.getElementById('rc-sticks-container').style.display = 'flex';
-                document.getElementById('instruction-text').innerHTML = `
-                    <b>[ TOUCH & DRAG JOYSTICKS TO FLY ]</b><br><br>
-                    <b>Left Stick</b>: Throttle & Yaw | <b>Right Stick</b>: Pitch & Roll<br>
-                    <b>[ R ]</b> : Reset Drone | <b>[ C ]</b> : Switch View<br><br>
-                    <span style="color: #00ffcc;">✓ Mobile Touch Mode Active</span>
-                `;
-            } else {
-                // Mode PC / Mouse: Coba kunci pointer jika didukung, jika tidak pakai drag mouse
-                if (!isTouchDevice) {
-                    try {
-                        container.requestPointerLock();
-                    } catch(err) {
-                        console.log("Pointer lock not available, using mouse drag support.");
-                    }
-                }
-            }
-            inst.style.display = 'none';
-        }
+        // Deteksi Touch untuk HP/Tablet secara otomatis
+        window.addEventListener('touchstart', function onFirstTouch() {
+            isTouchDevice = true;
+            document.getElementById('rc-sticks-container').style.display = 'flex';
+            document.getElementById('instruction-text').innerHTML = `
+                <b>[ TOUCH & DRAG JOYSTICKS TO FLY ]</b><br><br>
+                <b>Left Stick</b>: Throttle & Yaw | <b>Right Stick</b>: Pitch & Roll<br>
+                <b>[ R ]</b> : Reset Drone | <b>[ C ]</b> : Switch View<br><br>
+                <span style="color: #00ffcc;">✓ Mobile Touch Mode Active</span>
+            `;
+            window.removeEventListener('touchstart', onFirstTouch);
+        }, {once: true});
 
         const container = document.getElementById('canvas-container');
         const inst = document.getElementById('instructions');
 
+        // Fungsi klik normal untuk mulai game (Pointer Lock standar PC)
+        function startGame() {
+            if (!isTouchDevice) {
+                container.requestPointerLock();
+            }
+        }
+
         inst.addEventListener('click', startGame);
-        inst.addEventListener('touchstart', startGame, {passive: true});
+        container.addEventListener('click', startGame);
 
         document.addEventListener('pointerlockchange', () => { 
             const isLocked = (document.pointerLockElement === container);
             if (!isTouchDevice) {
                 inst.style.display = isLocked ? 'none' : 'flex';
             }
-        });
-
-        // --- MOUSE DRAG & CLICK SUPPORT FOR PC (Tanpa Pointer Lock wajib) ---
-        let isMouseDown = false;
-        let mouseStartX = 0, mouseStartY = 0;
-        let clickPitch = 0, clickRoll = 0;
-
-        container.addEventListener('mousedown', (e) => {
-            if (isTouchDevice || inst.style.display !== 'none') return;
-            isMouseDown = true;
-            mouseStartX = e.clientX;
-            mouseStartY = e.clientY;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (document.pointerLockElement === container) return; // Biarkan pointer lock yg handle jika aktif
-            
-            if (isMouseDown && !isTouchDevice) {
-                let dx = e.clientX - mouseStartX;
-                let dy = e.clientY - mouseStartY;
-                mouseRoll = dx * 0.0015;
-                mousePitch = -dy * 0.0015;
-                mouseStartX = e.clientX;
-                mouseStartY = e.clientY;
-            }
-        });
-
-        window.addEventListener('mouseup', () => {
-            isMouseDown = false;
-            clickPitch = 0;
-            clickRoll = 0;
         });
 
         // --- CHROMA KEY & NOISE REDUCTION PROCESSOR ---
@@ -561,7 +524,7 @@
             if (keys.a || keys.arrowleft) inputYaw = -YAW_RATE * dt;
             if (keys.d || keys.arrowright) inputYaw = YAW_RATE * dt;
 
-            if (document.pointerLockElement === container || isMouseDown || isTouchDevice) {
+            if (document.pointerLockElement === container || isTouchDevice) {
                 let pitchInput = mousePitch + touchPitch;
                 let rollInput = mouseRoll + touchRoll;
 
@@ -612,7 +575,7 @@
                     drone.velocity.y = 0;
                 }
                 drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
-                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.2) { 
+                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSeq && tumbleRotationVelocity.lengthSq() < 0.2) { 
                     drone.euler.x = 0; drone.euler.z = 0; drone.rotation.setFromEuler(drone.euler); 
                 }
             }
