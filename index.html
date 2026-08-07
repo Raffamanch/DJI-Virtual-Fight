@@ -9,40 +9,46 @@
         #canvas-container { width: 100%; height: 100%; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
         
+        /* OSD Canvas Overlay (Chroma Key & Noise Reduction Processor) */
         #osd-overlay-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none;
             image-rendering: pixelated;
         }
 
+        /* RC Stick Controller Overlay (Posisi digeser sedikit ke atas) */
         #rc-sticks-container {
             position: absolute;
-            bottom: 120px;
-            width: 100%;
+            bottom: 65px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: space-between;
-            padding: 0 40px;
+            gap: 15px;
             z-index: 7;
             pointer-events: none;
-            display: none; 
         }
         .stick-box {
-            width: 110px;
-            height: 110px;
-            background: rgba(40, 45, 55, 0.45);
-            border: 2px solid rgba(255, 255, 255, 0.35);
-            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            background: rgba(40, 45, 55, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
             position: relative;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-            pointer-events: auto;
-            touch-action: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .stick-cross-h {
+            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
+        }
+        .stick-cross-v {
+            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
         }
         .stick-ball {
-            position: absolute; width: 44px; height: 44px; background: rgba(255, 255, 255, 0.85); border-radius: 50%;
+            position: absolute; width: 14px; height: 14px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 3px 8px rgba(0,0,0,0.4); pointer-events: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
         }
 
+        /* Top Action Bar */
         #top-action-bar {
             position: absolute; top: 20px; right: 35px; display: flex; align-items: center; gap: 12px; z-index: 8; pointer-events: auto;
         }
@@ -54,6 +60,7 @@
         .top-btn:hover { background: rgba(40, 50, 70, 0.8); }
         .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 4px; }
 
+        /* MAIN MENU SCREEN */
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.1); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 30px 40px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; }
         h1 { margin-bottom: 20px; font-size: 24px; letter-spacing: 1px; color: #ffeb3b; }
@@ -77,13 +84,18 @@
             <button class="top-btn" id="btn-pause">Pause <span class="btn-icon">ESC</span></button>
         </div>
 
+        <!-- Canvas untuk OSD Image Overlay -->
         <canvas id="osd-overlay-canvas"></canvas>
 
         <div id="rc-sticks-container">
-            <div class="stick-box" id="stick-left-box">
+            <div class="stick-box">
+                <div class="stick-cross-h"></div>
+                <div class="stick-cross-v"></div>
                 <div id="stick-left" class="stick-ball"></div>
             </div>
-            <div class="stick-box" id="stick-right-box">
+            <div class="stick-box">
+                <div class="stick-cross-h"></div>
+                <div class="stick-cross-v"></div>
                 <div id="stick-right" class="stick-ball"></div>
             </div>
         </div>
@@ -91,51 +103,18 @@
         <div id="instructions">
             <div id="menu-content">
                 <h1>VelociDrone</h1>
-                <p id="instruction-text">
+                <p>
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S or UP / DOWN ]</b> : THROTTLE | <b>[ A / D or LEFT / RIGHT ]</b> : YAW<br>
+                    <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ Standard Pointer Lock Mode Restored</span>
+                    <span style="color: #00ffcc;">✓ Stick Overlay Position Adjusted Upwards</span>
                 </p>
             </div>
         </div>
     </div>
 
     <script>
-        let isTouchDevice = false;
-
-        window.addEventListener('touchstart', function onFirstTouch() {
-            isTouchDevice = true;
-            document.getElementById('rc-sticks-container').style.display = 'flex';
-            document.getElementById('instruction-text').innerHTML = `
-                <b>[ TOUCH & DRAG JOYSTICKS TO FLY ]</b><br><br>
-                <b>Left Stick</b>: Throttle & Yaw | <b>Right Stick</b>: Pitch & Roll<br>
-                <b>[ R ]</b> : Reset Drone | <b>[ C ]</b> : Switch View<br><br>
-                <span style="color: #00ffcc;">✓ Mobile Touch Mode Active</span>
-            `;
-            window.removeEventListener('touchstart', onFirstTouch);
-        }, {once: true});
-
-        const container = document.getElementById('canvas-container');
-        const inst = document.getElementById('instructions');
-
-        function startGame() {
-            if (!isTouchDevice) {
-                container.requestPointerLock();
-            }
-        }
-
-        inst.addEventListener('click', startGame);
-        container.addEventListener('click', startGame);
-
-        document.addEventListener('pointerlockchange', () => { 
-            const isLocked = (document.pointerLockElement === container);
-            if (!isTouchDevice) {
-                inst.style.display = isLocked ? 'none' : 'flex';
-            }
-        });
-
         const osdCanvas = document.getElementById('osd-overlay-canvas');
         const oCtx = osdCanvas.getContext('2d', { willReadFrequently: true });
         const osdImg = new Image();
@@ -191,11 +170,15 @@
                     }
                 }
             }
+
             oCtx.putImageData(imgData, 0, 0);
         }
 
         osdImg.onload = () => { resizeOSD(); };
         window.addEventListener('resize', resizeOSD);
+
+        const container = document.getElementById('canvas-container');
+        const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xa4caff);
@@ -336,9 +319,9 @@
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let isSpawnedSafe = true; 
 
-        let keys = { w: false, s: false, a: false, d: false, arrowup: false, arrowdown: false, arrowleft: false, arrowright: false };
+        let keys = { w: false, s: false, a: false, d: false };
         let mouseRoll = 0, mousePitch = 0;
-        let touchPitch = 0, touchRoll = 0, touchYaw = 0;
+        let rawMouseX = 0, rawMouseY = 0;
 
         const MOUSE_SENSITIVITY = 0.0025; 
         const THROTTLE_SPEED = 4.0;
@@ -348,108 +331,35 @@
 
         let currentThrottle = 0;
 
+        function requestLock() {
+            container.requestPointerLock();
+        }
+        container.addEventListener('click', requestLock);
+        inst.addEventListener('click', requestLock);
+
+        document.addEventListener('pointerlockchange', () => { 
+            const isLocked = (document.pointerLockElement === container);
+            inst.style.display = isLocked ? 'none' : 'flex';
+            if (!isLocked) { rawMouseX = 0; rawMouseY = 0; }
+        });
+
         document.addEventListener('keydown', (e) => {
-            if (['1','2','3','4'].includes(e.key)) {
-                activeMode = parseInt(e.key);
-                return;
-            }
-            if (e.key.toLowerCase() === 'c') {
-                cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
-                return;
-            }
+            if (['1','2','3','4'].includes(e.key)) { activeMode = parseInt(e.key); return; }
+            if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true;
-            if (e.key === 'ArrowUp') keys.arrowup = true;
-            if (e.key === 'ArrowDown') keys.arrowdown = true;
-            if (e.key === 'ArrowLeft') keys.arrowleft = true;
-            if (e.key === 'ArrowRight') keys.arrowright = true;
             if (key === 'r') resetDrone();
         });
-
-        document.addEventListener('keyup', (e) => {
-            const key = e.key.toLowerCase();
-            if (key in keys) keys[key] = false;
-            if (e.key === 'ArrowUp') keys.arrowup = false;
-            if (e.key === 'ArrowDown') keys.arrowdown = false;
-            if (e.key === 'ArrowLeft') keys.arrowleft = false;
-            if (e.key === 'ArrowRight') keys.arrowright = false;
-        });
-
+        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement !== container) return;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
             mousePitch = -e.movementY * MOUSE_SENSITIVITY;
-        });
-
-        const leftBox = document.getElementById('stick-left-box');
-        const rightBox = document.getElementById('stick-right-box');
-        const stickLeft = document.getElementById('stick-left');
-        const stickRight = document.getElementById('stick-right');
-
-        let leftTouchId = null, rightTouchId = null;
-        let leftOrigin = {x: 0, y: 0}, rightOrigin = {x: 0, y: 0};
-
-        leftBox.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.changedTouches[0];
-            leftTouchId = touch.identifier;
-            const rect = leftBox.getBoundingClientRect();
-            leftOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        });
-
-        rightBox.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.changedTouches[0];
-            rightTouchId = touch.identifier;
-            const rect = rightBox.getBoundingClientRect();
-            rightOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-        });
-
-        window.addEventListener('touchmove', (e) => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === leftTouchId) {
-                    let dx = touch.clientX - leftOrigin.x;
-                    let dy = touch.clientY - leftOrigin.y;
-                    let dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
-                    let angle = Math.atan2(dy, dx);
-                    let cx = Math.cos(angle) * dist;
-                    let cy = Math.sin(angle) * dist;
-                    stickLeft.style.transform = `translate(calc(-50% + ${cx}px), calc(-50% + ${cy}px))`;
-                    
-                    currentThrottle = THREE.MathUtils.clamp(1.0 - (cy / 45 + 1) / 2, 0, 1);
-                    touchYaw = (cx / 45) * YAW_RATE * 0.5;
-                }
-                if (touch.identifier === rightTouchId) {
-                    let dx = touch.clientX - rightOrigin.x;
-                    let dy = touch.clientY - rightOrigin.y;
-                    let dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
-                    let angle = Math.atan2(dy, dx);
-                    let cx = Math.cos(angle) * dist;
-                    let cy = Math.sin(angle) * dist;
-                    stickRight.style.transform = `translate(calc(-50% + ${cx}px), calc(-50% + ${cy}px))`;
-                    
-                    touchRoll = (cx / 45) * 0.05;
-                    touchPitch = (-cy / 45) * 0.05;
-                }
-            }
-        }, {passive: false});
-
-        window.addEventListener('touchend', (e) => {
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const touch = e.changedTouches[i];
-                if (touch.identifier === leftTouchId) {
-                    leftTouchId = null;
-                    stickLeft.style.transform = `translate(-50%, -50%)`;
-                    touchYaw = 0;
-                }
-                if (touch.identifier === rightTouchId) {
-                    rightTouchId = null;
-                    stickRight.style.transform = `translate(-50%, -50%)`;
-                    touchPitch = 0;
-                    touchRoll = 0;
-                }
-            }
+            
+            rawMouseX += e.movementX * 0.4;
+            rawMouseY += e.movementY * 0.4;
+            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
+            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
         });
 
         document.getElementById('btn-switch-view').addEventListener('click', (e) => {
@@ -462,16 +372,14 @@
         });
         document.getElementById('btn-pause').addEventListener('click', (e) => {
             e.stopPropagation();
-            if (!isTouchDevice) {
-                try { document.exitPointerLock(); } catch(err) {}
-            }
+            document.exitPointerLock();
             inst.style.display = 'flex';
         });
 
         function resetDrone() {
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
-            isSpawnedSafe = true; 
+            isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
         }
 
         function handleCollisions() {
@@ -513,28 +421,27 @@
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
-            let inputYaw = touchYaw;
-            
-            if (keys.w || keys.arrowup) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
-            if (keys.s || keys.arrowdown) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
-            if (keys.a || keys.arrowleft) inputYaw = -YAW_RATE * dt;
-            if (keys.d || keys.arrowright) inputYaw = YAW_RATE * dt;
-
-            if (document.pointerLockElement === container || isTouchDevice) {
-                let pitchInput = mousePitch + touchPitch;
-                let rollInput = mouseRoll + touchRoll;
+            let inputYaw = 0;
+            if (document.pointerLockElement === container) {
+                if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
+                if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
+                if (keys.a) inputYaw = -YAW_RATE * dt;
+                if (keys.d) inputYaw = YAW_RATE * dt;
 
                 if (modeCfg.hasAutoLevel) {
                     drone.euler.y -= inputYaw;
-                    drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + pitchInput, -modeCfg.maxAngle, modeCfg.maxAngle);
-                    drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - rollInput, -modeCfg.maxAngle, modeCfg.maxAngle);
-                    if (Math.abs(pitchInput) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
-                    if (Math.abs(rollInput) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
+                    drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
+                    drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
+                    if (Math.abs(mousePitch) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
+                    if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
                     drone.rotation.setFromEuler(drone.euler);
                 } else {
-                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchInput, -inputYaw, -rollInput, 'YXZ'));
+                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'));
                     drone.rotation.multiply(deltaRotation).normalize();
                 }
+            } else {
+                rawMouseX *= Math.exp(-10.0 * dt);
+                rawMouseY *= Math.exp(-10.0 * dt);
             }
 
             if (drone.position.y > 1.5) { isSpawnedSafe = false; }
@@ -571,7 +478,7 @@
                     drone.velocity.y = 0;
                 }
                 drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
-                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSeq && tumbleRotationVelocity.lengthSq() < 0.2) { 
+                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.2) { 
                     drone.euler.x = 0; drone.euler.z = 0; drone.rotation.setFromEuler(drone.euler); 
                 }
             }
@@ -602,6 +509,14 @@
             }
 
             mouseRoll = 0; mousePitch = 0;
+
+            const stickLeft = document.getElementById('stick-left');
+            const stickRight = document.getElementById('stick-right');
+            const leftY = (currentThrottle - 0.5) * -50; 
+            const leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 22;
+            stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
+            stickRight.style.transform = `translate(calc(-50% + ${rawMouseX}px), calc(-50% + ${rawMouseY}px))`;
+
             renderer.render(scene, camera);
         }
 
