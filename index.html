@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>DJI Virtual Flight - Factory Simulator</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; font-family: monospace; }
-        #canvas-container { width: 100%; height: 100%; position: relative; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #87ceeb; font-family: monospace; position: fixed; }
+        #canvas-container { width: 100%; height: 100%; position: relative; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         
         /* OSD Canvas Overlay */
@@ -16,7 +17,7 @@
             image-rendering: pixelated;
         }
 
-        /* RC Stick Controller Overlay (PC) */
+        /* RC Stick Controller Overlay (PC) - Fixed inputs tracking correctly */
         #rc-sticks-container {
             position: absolute;
             bottom: 75px;
@@ -41,7 +42,7 @@
         .stick-ball {
             position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
         /* Touch Joysticks Overlay (Mobile Only) */
@@ -64,72 +65,67 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        /* Right-Center Camera Tilt Slider */
+        /* Right-Center Camera Tilt Slider (Transparent with white normal styling, NO TEXT as requested) */
         #camera-slider-container {
             position: absolute;
-            right: 30px;
+            right: 20px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(20, 25, 35, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(20, 25, 35, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 12px;
-            padding: 15px 10px;
+            padding: 12px 6px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
             z-index: 12;
             pointer-events: auto;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        #camera-slider-container label {
-            color: #00ffcc;
-            font-size: 11px;
-            font-weight: bold;
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            letter-spacing: 1px;
+            backdrop-filter: blur(2px);
         }
         #cam-tilt-slider {
             writing-mode: vertical-lr;
             direction: rtl;
-            width: 25px;
-            height: 140px;
-            accent-color: #00ffcc;
+            width: 20px;
+            height: 120px;
+            accent-color: #ffffff;
             cursor: pointer;
+            opacity: 0.75;
+        }
+        #cam-tilt-slider:hover {
+            opacity: 1.0;
         }
 
         /* Top Action Bar */
         #top-action-bar {
-            position: absolute; top: 20px; right: 35px; display: flex; align-items: center; gap: 12px; z-index: 8; pointer-events: auto;
+            position: absolute; top: 15px; right: 20px; display: flex; align-items: center; gap: 8px; z-index: 8; pointer-events: auto;
         }
         .top-btn {
             background: rgba(20, 25, 35, 0.7); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.25);
-            padding: 6px 14px; border-radius: 6px; font-family: monospace; font-size: 14px; cursor: pointer;
-            display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            padding: 6px 12px; border-radius: 6px; font-family: monospace; font-size: 13px; cursor: pointer;
+            display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
         .top-btn:hover { background: rgba(40, 50, 70, 0.8); }
-        .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 4px; }
+        .btn-icon { background: #ffffff; color: #111; font-size: 10px; font-weight: bold; padding: 1px 4px; border-radius: 4px; }
 
         /* Top Menu Bar */
-        #top-menu-bar { position: absolute; top: 20px; left: 30px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
-        #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        #top-menu-bar { position: absolute; top: 15px; left: 20px; display: flex; align-items: center; gap: 8px; z-index: 8; pointer-events: auto; }
+        #menu-dot-esc { color: #ffffff; font-size: 13px; background: rgba(20, 25, 35, 0.7); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
         #mobile-mode-btn {
-            color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            color: #ffeb3b; font-size: 13px; background: rgba(20, 25, 35, 0.85); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             display: none; font-weight: bold;
         }
 
-        /* FOV Selector dropdown (Set to 130° as requested default/minimum range) */
+        /* FOV Selector dropdown */
         #fov-selector {
             background: rgba(20, 25, 35, 0.85); color: #00ffcc; border: 1px solid rgba(0,255,204,0.4);
-            padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 13px; cursor: pointer; outline: none;
+            padding: 6px 8px; border-radius: 6px; font-family: monospace; font-size: 12px; cursor: pointer; outline: none;
         }
 
         /* MAIN MENU SCREEN */
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 15; }
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 15; }
         #menu-content { background: rgba(20, 28, 40, 0.95); padding: 30px 40px; border: 1px solid rgba(0,255,204,0.3); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); pointer-events: auto; max-width: 90%; }
-        h1 { margin-bottom: 15px; font-size: 24px; letter-spacing: 1px; color: #00ffcc; }
-        p { line-height: 1.8; font-size: 14px; color: #ddd; }
+        h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #00ffcc; }
+        p { line-height: 1.8; font-size: 13px; color: #ddd; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
@@ -153,9 +149,8 @@
             <button class="top-btn" id="btn-pause">Pause <span class="btn-icon" id="pause-icon">ESC</span></button>
         </div>
 
-        <!-- Right-Center Camera Tilt Slider -->
+        <!-- Right-Center Camera Tilt Slider (No Text, White normal style, transparent) -->
         <div id="camera-slider-container">
-            <label for="cam-tilt-slider">CAM TILT</label>
             <input type="range" id="cam-tilt-slider" min="-30" max="60" value="25" step="1">
         </div>
 
@@ -175,18 +170,19 @@
             <div id="menu-content">
                 <h1>DJI Virtual Flight - Factory</h1>
                 <p id="instruction-text">
-                    <b>[ CLICK TO START FACTORY SIMULATION ]</b><br><br>
+                    <b>[ CLICK TO START FACTORY SIMULATOR ]</b><br><br>
                     <b>[ W / S ]</b> : Throttle | <b>[ A / D ]</b> : Yaw<br>
-                    <b>[ Mouse ]</b> : Pitch & Roll | <b>[ Slider ]</b> : Adjust Camera Tilt (Up/Down)<br>
+                    <b>[ UP / DOWN Arrow Keys ]</b> : Throttle Control Alternative<br>
+                    <b>[ Mouse / Look ]</b> : Pitch & Roll | <b>[ Slider ]</b> : Camera Tilt<br>
                     <b>[ C ]</b> : Toggle FPV / Chase View | <b>[ 1-4 ]</b> : Flight Modes<br><br>
-                    <span style="color: #00ffcc;">✓ Avata 2 Model, Factory Map, and 130°/140° FOV Options Loaded</span>
+                    <span style="color: #00ffcc;">✓ Bright Day Lighting, Fixed RC Inputs & Fullscreen Aspect Active</span>
                 </p>
             </div>
         </div>
     </div>
 
     <script>
-        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
         if (isMobile) {
             document.getElementById('touch-controls').style.display = 'block';
@@ -197,7 +193,7 @@
                 <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
                 <b>[ Right Slider ]</b> : Camera Pitch Up/Down<br><br>
-                <span style="color: #00ffcc;">✓ Mobile Touch Controls & DJI Avata 2 Physics Active</span>
+                <span style="color: #00ffcc;">✓ Bright Day Lighting & Touch Joysticks Active</span>
             `;
         }
 
@@ -207,8 +203,16 @@
         osdImg.src = 'hd.jpeg';
 
         function resizeOSD() {
-            osdCanvas.width = window.innerWidth;
-            osdCanvas.height = window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            osdCanvas.width = width;
+            osdCanvas.height = height;
+            
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+
             if (osdImg.complete) renderProcessedOSD();
         }
 
@@ -238,47 +242,52 @@
 
         osdImg.onload = () => { resizeOSD(); };
         window.addEventListener('resize', resizeOSD);
+        window.addEventListener('orientationchange', () => { setTimeout(resizeOSD, 200); });
 
         const container = document.getElementById('canvas-container');
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x12161a);
-        scene.fog = new THREE.FogExp2(0x12161a, 0.0025);
+        // Clear bright daylight sky background matching video reference
+        scene.background = new THREE.Color(0xa0c8e6);
+        scene.fog = new THREE.FogExp2(0xa0c8e6, 0.0015);
 
-        // Default camera FOV initialized to 130 degrees minimum as requested
         const camera = new THREE.PerspectiveCamera(130, window.innerWidth / window.innerHeight, 0.1, 2000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // FOV Selector listener (Supports 130, 140, 155)
         document.getElementById('fov-selector').addEventListener('change', (e) => {
             camera.fov = parseFloat(e.target.value);
             camera.updateProjectionMatrix();
         });
 
-        // Camera Tilt Slider Listener
         const camTiltSlider = document.getElementById('cam-tilt-slider');
         let customCameraPitchDeg = 25; 
         camTiltSlider.addEventListener('input', (e) => {
             customCameraPitchDeg = parseFloat(e.target.value);
         });
 
-        scene.add(new THREE.AmbientLight(0xddeeff, 0.6));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(50, 200, 50);
+        // Bright Daylight Factory Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+        dirLight.position.set(100, 300, 100);
         scene.add(dirLight);
+
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+        hemiLight.position.set(0, 500, 0);
+        scene.add(hemiLight);
 
         // --- FACTORY ENVIRONMENT SETUP ---
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
         const ctxFloor = floorCanvas.getContext('2d');
-        ctxFloor.fillStyle = '#22262a'; ctxFloor.fillRect(0, 0, 256, 256);
-        ctxFloor.strokeStyle = '#1a1d20'; ctxFloor.lineWidth = 4;
+        ctxFloor.fillStyle = '#8a8275'; ctxFloor.fillRect(0, 0, 256, 256);
+        ctxFloor.strokeStyle = '#756d60'; ctxFloor.lineWidth = 4;
         ctxFloor.strokeRect(0,0,256,256);
         for(let i=0; i<400; i++) {
-            ctxFloor.fillStyle = Math.random() > 0.5 ? '#282d33' : '#1c2024';
+            ctxFloor.fillStyle = Math.random() > 0.5 ? '#948c7e' : '#7d7468';
             ctxFloor.fillRect(Math.random()*256, Math.random()*256, 12, 12);
         }
         const floorTex = new THREE.CanvasTexture(floorCanvas);
@@ -287,13 +296,13 @@
 
         const floorGeo = new THREE.PlaneGeometry(4000, 4000);
         floorGeo.rotateX(-Math.PI / 2);
-        const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.7 });
+        const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8 });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
 
         const obstacles = [];
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x333b42, roughness: 0.5 });
-        const rustMat = new THREE.MeshStandardMaterial({ color: 0x5a4238, roughness: 0.8 });
-        const hazardMat = new THREE.MeshStandardMaterial({ color: 0xcc9900, roughness: 0.4 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x6e7882, roughness: 0.5 });
+        const rustMat = new THREE.MeshStandardMaterial({ color: 0x826455, roughness: 0.7 });
+        const hazardMat = new THREE.MeshStandardMaterial({ color: 0xd6a100, roughness: 0.4 });
 
         function createFactoryPillar(x, z, h) {
             const geom = new THREE.BoxGeometry(6, h, 6);
@@ -393,7 +402,7 @@
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let isSpawnedSafe = true; 
 
-        let keys = { w: false, s: false, a: false, d: false };
+        let keys = { w: false, s: false, a: false, d: false, arrowup: false, arrowdown: false };
         let mouseRoll = 0, mousePitch = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
@@ -408,6 +417,7 @@
         let currentThrottle = 0;
 
         function startGameSession() {
+            resizeOSD();
             inst.style.display = 'none';
             if (!isMobile) container.requestPointerLock();
         }
@@ -430,10 +440,18 @@
             }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             const key = e.key.toLowerCase();
+            if (key === 'arrowup' || key === 'w') keys.w = true;
+            if (key === 'arrowdown' || key === 's') keys.s = true;
             if (key in keys) keys[key] = true;
             if (key === 'r') resetDrone();
         });
-        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
+        document.addEventListener('keyup', (e) => { 
+            const key = e.key.toLowerCase(); 
+            if (key === 'arrowup' || key === 'w') keys.w = false;
+            if (key === 'arrowdown' || key === 's') keys.s = false;
+            if (key in keys) keys[key] = false; 
+        });
+
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
@@ -511,6 +529,7 @@
             drone.position.set(0, 0.4, 40); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0); isSpawnedSafe = true;
             rawMouseX = 0; rawMouseY = 0; touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
+            resizeOSD();
         }
 
         function handleCollisions() {
@@ -539,11 +558,20 @@
             const modeCfg = MODES[activeMode];
             let inputYaw = 0;
 
+            let currentThrottleVal = currentThrottle;
+            let currentRollVal = 0;
+            let currentPitchVal = 0;
+            let currentYawVal = 0;
+
             if (isMobile) {
                 currentThrottle = (-touchLeftValY + 1) / 2;
                 inputYaw = touchLeftValX * YAW_RATE * dt;
                 const targetPitch = -touchRightValY * modeCfg.maxAngle;
                 const targetRoll = touchRightValX * modeCfg.maxAngle;
+                currentThrottleVal = currentThrottle;
+                currentRollVal = touchRightValX;
+                currentPitchVal = touchRightValY;
+                currentYawVal = touchLeftValX;
                 if (modeCfg.hasAutoLevel) {
                     drone.euler.y -= inputYaw; drone.euler.x = targetPitch; drone.euler.z = targetRoll;
                     drone.rotation.setFromEuler(drone.euler);
@@ -557,6 +585,12 @@
                     if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
                     if (keys.a) inputYaw = -YAW_RATE * dt;
                     if (keys.d) inputYaw = YAW_RATE * dt;
+                    
+                    currentThrottleVal = currentThrottle;
+                    currentYawVal = (keys.d ? 1 : 0) - (keys.a ? 1 : 0);
+                    currentRollVal = rawMouseX / 25;
+                    currentPitchVal = -rawMouseY / 25;
+
                     if (modeCfg.hasAutoLevel) {
                         drone.euler.y -= inputYaw;
                         drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
@@ -567,6 +601,19 @@
                         drone.rotation.multiply(deltaRotation).normalize();
                     }
                 }
+            }
+
+            // Update RC Sticks Overlay Visuals precisely based on user inputs
+            const leftStickBall = document.getElementById('stick-left');
+            const rightStickBall = document.getElementById('stick-right');
+            if (leftStickBall && rightStickBall) {
+                const maxRangePx = 32;
+                const leftX = currentYawVal * maxRangePx;
+                const leftY = (-(currentThrottleVal * 2 - 1)) * maxRangePx; // Throttle mapping: bottom to top
+                const rightX = currentRollVal * maxRangePx;
+                const rightY = currentPitchVal * maxRangePx;
+                leftStickBall.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
+                rightStickBall.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
             }
 
             if (drone.position.y > 1.5) isSpawnedSafe = false;
