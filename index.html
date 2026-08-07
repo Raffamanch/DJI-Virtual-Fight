@@ -6,7 +6,7 @@
     <title>DJI Virtual Flight - Factory Simulator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #87ceeb; font-family: monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #6b8fa3; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: relative; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         
@@ -17,7 +17,7 @@
             image-rendering: pixelated;
         }
 
-        /* RC Stick Controller Overlay (PC) - Fixed inputs tracking correctly */
+        /* RC Stick Controller Overlay (PC) */
         #rc-sticks-container {
             position: absolute;
             bottom: 75px;
@@ -65,7 +65,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        /* Right-Center Camera Tilt Slider (Transparent with white normal styling, NO TEXT as requested) */
+        /* Right-Center Camera Tilt Slider (Transparent, white normal style, NO TEXT) */
         #camera-slider-container {
             position: absolute;
             right: 20px;
@@ -149,7 +149,7 @@
             <button class="top-btn" id="btn-pause">Pause <span class="btn-icon" id="pause-icon">ESC</span></button>
         </div>
 
-        <!-- Right-Center Camera Tilt Slider (No Text, White normal style, transparent) -->
+        <!-- Right-Center Camera Tilt Slider (No text, white normal style, transparent) -->
         <div id="camera-slider-container">
             <input type="range" id="cam-tilt-slider" min="-30" max="60" value="25" step="1">
         </div>
@@ -175,7 +175,7 @@
                     <b>[ UP / DOWN Arrow Keys ]</b> : Throttle Control Alternative<br>
                     <b>[ Mouse / Look ]</b> : Pitch & Roll | <b>[ Slider ]</b> : Camera Tilt<br>
                     <b>[ C ]</b> : Toggle FPV / Chase View | <b>[ 1-4 ]</b> : Flight Modes<br><br>
-                    <span style="color: #00ffcc;">✓ Bright Day Lighting, Fixed RC Inputs & Fullscreen Aspect Active</span>
+                    <span style="color: #00ffcc;">✓ Realistic Video Lighting, Fixed RC Inputs & Fullscreen Active</span>
                 </p>
             </div>
         </div>
@@ -193,7 +193,7 @@
                 <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
                 <b>[ Right Slider ]</b> : Camera Pitch Up/Down<br><br>
-                <span style="color: #00ffcc;">✓ Bright Day Lighting & Touch Joysticks Active</span>
+                <span style="color: #00ffcc;">✓ Realistic Video Lighting & Touch Joysticks Active</span>
             `;
         }
 
@@ -228,9 +228,9 @@
                 } else {
                     let brightness = (r + g + b) / 3;
                     if (brightness > 60) {
-                        data[i] = Math.min(255, r * 1.2);
-                        data[i+1] = Math.min(255, g * 1.2);
-                        data[i+2] = Math.min(255, b * 1.2);
+                        data[i] = Math.min(255, r * 1.1);
+                        data[i+1] = Math.min(255, g * 1.1);
+                        data[i+2] = Math.min(255, b * 1.1);
                         data[i+3] = 255;
                     } else {
                         data[i+3] = 0;
@@ -248,9 +248,9 @@
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        // Clear bright daylight sky background matching video reference
-        scene.background = new THREE.Color(0xa0c8e6);
-        scene.fog = new THREE.FogExp2(0xa0c8e6, 0.0015);
+        // Balanced realistic sky color matching video reference exactly (not overly bright/washed out)
+        scene.background = new THREE.Color(0x6b8fa3);
+        scene.fog = new THREE.FogExp2(0x6b8fa3, 0.0018);
 
         const camera = new THREE.PerspectiveCamera(130, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -269,13 +269,13 @@
             customCameraPitchDeg = parseFloat(e.target.value);
         });
 
-        // Bright Daylight Factory Lighting
-        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
-        dirLight.position.set(100, 300, 100);
+        // Balanced Realistic Lighting matching video reference
+        scene.add(new THREE.AmbientLight(0xddeeff, 0.7));
+        const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.85);
+        dirLight.position.set(120, 250, 100);
         scene.add(dirLight);
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+        const hemiLight = new THREE.HemisphereLight(0xa5c4d4, 0x544a3c, 0.6);
         hemiLight.position.set(0, 500, 0);
         scene.add(hemiLight);
 
@@ -283,11 +283,11 @@
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
         const ctxFloor = floorCanvas.getContext('2d');
-        ctxFloor.fillStyle = '#8a8275'; ctxFloor.fillRect(0, 0, 256, 256);
-        ctxFloor.strokeStyle = '#756d60'; ctxFloor.lineWidth = 4;
+        ctxFloor.fillStyle = '#6e675d'; ctxFloor.fillRect(0, 0, 256, 256);
+        ctxFloor.strokeStyle = '#5a5349'; ctxFloor.lineWidth = 4;
         ctxFloor.strokeRect(0,0,256,256);
         for(let i=0; i<400; i++) {
-            ctxFloor.fillStyle = Math.random() > 0.5 ? '#948c7e' : '#7d7468';
+            ctxFloor.fillStyle = Math.random() > 0.5 ? '#787065' : '#615a51';
             ctxFloor.fillRect(Math.random()*256, Math.random()*256, 12, 12);
         }
         const floorTex = new THREE.CanvasTexture(floorCanvas);
@@ -296,13 +296,13 @@
 
         const floorGeo = new THREE.PlaneGeometry(4000, 4000);
         floorGeo.rotateX(-Math.PI / 2);
-        const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.8 });
+        const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.85 });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
 
         const obstacles = [];
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x6e7882, roughness: 0.5 });
-        const rustMat = new THREE.MeshStandardMaterial({ color: 0x826455, roughness: 0.7 });
-        const hazardMat = new THREE.MeshStandardMaterial({ color: 0xd6a100, roughness: 0.4 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x5a636c, roughness: 0.6 });
+        const rustMat = new THREE.MeshStandardMaterial({ color: 0x6e5244, roughness: 0.75 });
+        const hazardMat = new THREE.MeshStandardMaterial({ color: 0xb58900, roughness: 0.5 });
 
         function createFactoryPillar(x, z, h) {
             const geom = new THREE.BoxGeometry(6, h, 6);
