@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DJI Virtual Fight</title>
+    <title>DJI Virtual Flight</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* OSD Canvas Overlay (Chroma Key & Noise Reduction Processor) */
+        /* OSD Canvas Overlay */
         #osd-overlay-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none;
@@ -104,7 +104,6 @@
         #top-menu-bar { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
         #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
         
-        /* Mobile Flight Mode Selector Button (Visible only on phone) */
         #mobile-mode-btn {
             color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             display: none; font-weight: bold;
@@ -122,7 +121,7 @@
 
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">NO &bull; 6/5</div>
+            <div id="menu-dot-esc">DJI &bull; 140°</div>
             <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
@@ -132,10 +131,8 @@
             <button class="top-btn" id="btn-pause">Pause <span class="btn-icon" id="pause-icon">ESC</span></button>
         </div>
 
-        <!-- Canvas untuk OSD Image Overlay -->
         <canvas id="osd-overlay-canvas"></canvas>
 
-        <!-- RC Sticks Overlay (PC) -->
         <div id="rc-sticks-container">
             <div class="stick-box">
                 <div class="stick-cross-h"></div>
@@ -149,7 +146,6 @@
             </div>
         </div>
 
-        <!-- Touch Controls (Mobile) -->
         <div id="touch-controls">
             <div id="touch-left-pad" class="touch-pad">
                 <div id="touch-left-knob" class="touch-knob"></div>
@@ -161,13 +157,13 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>VelociDrone</h1>
+                <h1>DJI Virtual Flight</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
+                    <b>[ W / S ]</b> : MOVE FORWARD / BACKWARD (Throttle) | <b>[ A / D ]</b> : YAW<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
                     <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ iPhone & Mobile Viewport Autofix Active (FOV: 125°)</span>
+                    <span style="color: #00ffcc;">✓ DJI Avata 1 Model Loaded (FOV: 140°)</span>
                 </p>
             </div>
         </div>
@@ -182,10 +178,10 @@
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
+                <b>[ Left Joystick ]</b> : Forward/Back & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
                 <b>[ Top Menu 'MODE' ]</b> : Tap to Cycle Flight Mode<br><br>
-                <span style="color: #00ffcc;">✓ iPhone Touch & Auto-Resize Fix Active (FOV: 125°)</span>
+                <span style="color: #00ffcc;">✓ DJI Avata 1 & Auto-Resize Fix Active (FOV: 140°)</span>
             `;
         }
 
@@ -259,14 +255,13 @@
         scene.background = new THREE.Color(0xa4caff);
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        // Set Field of View to 130 degrees
-        const camera = new THREE.PerspectiveCamera(130, window.innerWidth / window.innerHeight, 0.1, 2000);
+        // Set Field of View to 140 degrees
+        const camera = new THREE.PerspectiveCamera(140, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Robust Fullscreen & Orientation Resizing Fix (specifically targeting iPhone/Safari toolbar layout bugs)
         function handleResize() {
             const width = window.innerWidth;
             const height = window.innerHeight;
@@ -282,7 +277,6 @@
             setTimeout(handleResize, 300);
         });
 
-        // Trigger safe initial check
         setTimeout(handleResize, 100);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.85));
@@ -375,25 +369,43 @@
         createVelociGate(50, -170, Math.PI / 2);
         createVelociGate(0, -240, 0);
 
+        // DJI Avata 1 Drone Shape Construction
         const droneGroup = new THREE.Group();
-        const coreGeo = new THREE.BoxGeometry(1.2, 0.4, 1.8);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
-        droneGroup.add(new THREE.Mesh(coreGeo, coreMat));
+        const bodyMat = new THREE.MeshBasicMaterial({ color: darkGray = 0x222225 });
+        const accentMat = new THREE.MeshBasicMaterial({ color: 0xff6600 }); // DJI orange accent
+        const guardMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1c, wireframe: false });
 
-        const armMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
-        const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 3.2), armMat); arm1.rotation.y = Math.PI / 4;
-        const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 3.2), armMat); arm2.rotation.y = -Math.PI / 4;
-        droneGroup.add(arm1, arm2);
+        // Main Ducted Body / Fuselage
+        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 2.0), bodyMat);
+        fuselage.position.y = 0.05;
+        droneGroup.add(fuselage);
 
-        const propMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-        const offsets = [{x:1.1, z:1.1}, {x:-1.1, z:1.1}, {x:1.1, z:-1.1}, {x:-1.1, z:-1.1}];
+        // Camera Gimbal Pod at front
+        const camPod = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+        camPod.position.set(0, -0.05, 1.05);
+        droneGroup.add(camPod);
+
+        // Integrated Ducted Propeller Guards (Avata style circular rings)
+        const ringGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.5, 24, 1, true);
+        const propMat = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });
+        const bladeMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+
         const propMeshes = [];
+        const ductedOffsets = [{x: 1.15, z: 0.9}, {x: -1.15, z: 0.9}, {x: 1.15, z: -0.9}, {x: -1.15, z: -0.9}];
 
-        offsets.forEach(pos => {
-            const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.3), armMat); motor.position.set(pos.x, 0.2, pos.z);
-            const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.15), propMat); prop.position.set(pos.x, 0.35, pos.z);
-            droneGroup.add(motor, prop); propMeshes.push(prop);
+        ductedOffsets.forEach(pos => {
+            // Duct ring
+            const ring = new THREE.Mesh(ringGeo, guardMat);
+            ring.position.set(pos.x, 0.1, pos.z);
+            droneGroup.add(ring);
+
+            // Propeller blade inside duct
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.03, 0.18), bladeMat);
+            blade.position.set(pos.x, 0.1, pos.z);
+            droneGroup.add(blade);
+            propMeshes.push(blade);
         });
+
         scene.add(droneGroup);
 
         const drone = {
@@ -410,7 +422,7 @@
             4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
         };
         let activeMode = 1;
-        let cameraMode = "FPV";
+        let cameraMode = "TPV"; // default to Third Person View from behind as requested
 
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let isSpawnedSafe = true; 
@@ -612,10 +624,10 @@
             const modeCfg = MODES[activeMode];
 
             let inputYaw = 0;
+            let forwardInput = 0; // W/S or left stick vertical control for forward/backward movement
 
             if (isMobile) {
-                const targetThrottle = (-touchLeftValY + 1) / 2;
-                currentThrottle = targetThrottle;
+                forwardInput = -touchLeftValY; // up pushes forward, down pulls backward
                 inputYaw = touchLeftValX * YAW_RATE * dt;
 
                 const targetPitch = -touchRightValY * modeCfg.maxAngle;
@@ -632,8 +644,8 @@
                 }
             } else {
                 if (document.pointerLockElement === container) {
-                    if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
-                    if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
+                    if (keys.w) forwardInput = 1.0;
+                    if (keys.s) forwardInput = -1.0;
                     if (keys.a) inputYaw = -YAW_RATE * dt;
                     if (keys.d) inputYaw = YAW_RATE * dt;
 
@@ -667,11 +679,16 @@
                 }
             }
 
+            // Directional motion based on heading / forward input
+            const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(drone.rotation);
             const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
-            const thrust = localUp.multiplyScalar(currentThrottle * modeCfg.maxThrust);
+            
+            // Apply forward/backward push when W/S or joystick forward is used
+            const moveForce = forwardDir.multiplyScalar(forwardInput * modeCfg.maxThrust * 0.75);
+            const thrust = localUp.multiplyScalar(modeCfg.maxThrust * 0.5); // hover baseline
             const gravityForce = new THREE.Vector3(0, -GRAVITY, 0);
 
-            const accel = new THREE.Vector3().addVectors(thrust, gravityForce);
+            const accel = new THREE.Vector3().addVectors(thrust, gravityForce).add(moveForce);
             drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
@@ -698,7 +715,7 @@
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            if (currentThrottle > 0.05) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
+            if (Math.abs(forwardInput) > 0.05 || !isMobile) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
 
             cloudGroup.children.forEach(c => {
                 c.position.x += 1.5 * dt;
@@ -713,7 +730,8 @@
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
-                const backOffset = new THREE.Vector3(0, 2.5, 7.5).applyQuaternion(drone.rotation);
+                // Third person view from behind looking at the drone
+                const backOffset = new THREE.Vector3(0, 2.2, 6.5).applyQuaternion(drone.rotation);
                 camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.2);
                 camera.lookAt(drone.position);
             }
@@ -730,7 +748,7 @@
                 rightX = touchRightValX * 35;
                 rightY = touchRightValY * 35;
             } else {
-                leftY = (currentThrottle - 0.5) * -55; 
+                leftY = (keys.s ? 1 : (keys.w ? -1 : 0)) * 35; 
                 leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
                 rightX = rawMouseX;
                 rightY = rawMouseY;
