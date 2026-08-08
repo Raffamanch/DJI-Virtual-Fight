@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DJI Virtual Flight</title>
+    <title>DJI Avata 1 Sport & Manual Flight</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #87ceeb; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* OSD Canvas Overlay */
         #osd-overlay-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none;
             image-rendering: pixelated;
         }
 
-        /* RC Stick Controller Overlay (PC) */
         #rc-sticks-container {
             position: absolute;
             bottom: 75px;
@@ -37,58 +35,30 @@
             position: relative;
             box-shadow: 0 5px 12px rgba(0,0,0,0.33);
         }
-        .stick-cross-h {
-            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
-        }
-        .stick-cross-v {
-            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
-        }
+        .stick-cross-h { position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3); }
+        .stick-cross-v { position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3); }
         .stick-ball {
             position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
             box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
         }
 
-        /* Touch Joysticks Overlay (Mobile Only) */
         #touch-controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9;
-            pointer-events: none;
-            display: none;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 9; pointer-events: none; display: none;
         }
         .touch-pad {
-            position: absolute;
-            bottom: env(safe-area-inset-bottom, 30px);
-            width: 140px;
-            height: 140px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-            pointer-events: auto;
-            touch-action: none;
+            position: absolute; bottom: env(safe-area-inset-bottom, 30px); width: 140px; height: 140px;
+            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 50%;
+            pointer-events: auto; touch-action: none;
         }
         #touch-left-pad { left: 20px; bottom: 20px; }
         #touch-right-pad { right: 20px; bottom: 20px; }
-        
         .touch-knob {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 54px;
-            height: 54px;
-            background: rgba(255, 255, 255, 0.6);
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: absolute; top: 50%; left: 50%; width: 54px; height: 54px;
+            background: rgba(255, 255, 255, 0.6); border: 2px solid #ffffff; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        /* Top Action Bar */
         #top-action-bar {
             position: absolute; top: max(15px, env(safe-area-inset-top)); right: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto;
         }
@@ -100,29 +70,34 @@
         .top-btn:hover { background: rgba(40, 50, 70, 0.8); }
         .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 4px; }
 
-        /* Top Menu Bar */
         #top-menu-bar { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
         #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
-        
         #mobile-mode-btn {
             color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             display: none; font-weight: bold;
         }
 
-        /* MAIN MENU SCREEN */
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.35); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
         p { line-height: 1.6; font-size: 14px; color: #eee; }
+        #fallback-warning {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; color: #ff4444; z-index: 99;
+            flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; font-family: monospace;
+        }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
+    <div id="fallback-warning">
+        <h2>WebGL Initialization Failed</h2>
+        <p style="color: #ccc; margin-top: 10px;">Your browser or hardware acceleration does not support WebGL. Please enable hardware acceleration in your browser settings or use a modern GPU-enabled browser.</p>
+    </div>
+
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">DJI &bull; 140°</div>
-            <div id="mobile-mode-btn">MODE: NORMAL</div>
+            <div id="menu-dot-esc">DJI Avata &bull; S-Mode</div>
+            <div id="mobile-mode-btn">MODE: S (SPORT)</div>
         </div>
 
         <div id="top-action-bar">
@@ -157,18 +132,20 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Virtual Flight</h1>
+                <h1>DJI Avata 1 Flight Sim</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ Left Stick / W/S & A/D ]</b> : Terbang Atas/Turun & Lihat Kanan/Kiri (Yaw)<br>
-                    <b>[ Right Stick / Mouse ]</b> : Maju/Mundur & Kanan/Kiri Move<br>
-                    <b>[ R ]</b> : Reset Drone | <b>[ C ]</b> : Toggle FPV / TPV View<br><br>
-                    <span style="color: #00ffcc;">✓ Stable Horizon (0° Tilt) & Audio Active (FOV: 140°)</span>
+                    <b>Avata Sport (S) Mode & Manual Acro</b><br>
+                    <b>[ W/S & A/D ]</b> : Throttle Up/Down & Yaw Turn<br>
+                    <b>[ Mouse / Right Stick ]</b> : Avata Bank-to-Turn (Roll & Pitch)<br>
+                    <b>[ 1: N-Mode | 2: S-Mode (Avata 1) | 3: M-Mode Acro ]</b><br><br>
+                    <span style="color: #00ffcc;">✓ Authentic Avata 1 S-Mode Banking Mechanics</span>
                 </p>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -177,12 +154,27 @@
             document.getElementById('mobile-mode-btn').style.display = 'block';
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
-                <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Terbang Atas/Turun & Lihat Kanan/Kiri<br>
-                <b>[ Right Joystick ]</b> : Maju/Mundur & Kanan/Kiri Move<br>
-                <b>[ Top Menu 'MODE' ]</b> : Tap to Cycle Flight Mode<br><br>
-                <span style="color: #00ffcc;">✓ Stable Horizon (0° Tilt) & FOV: 140°</span>
+                <b>[ TAP TO START AVATA SIMULATOR ]</b><br><br>
+                <b>[ Left Joystick ]</b> : Altitude & Yaw Turn<br>
+                <b>[ Right Joystick ]</b> : Avata Bank & Pitch Control<br>
+                <b>[ Top Menu 'MODE' ]</b> : Cycle N / S / M Modes<br><br>
+                <span style="color: #00ffcc;">✓ DJI Avata 1 Sport Mode Physics Active</span>
             `;
+        }
+
+        // Check WebGL availability safely
+        function isWebGLAvailable() {
+            try {
+                const canvas = document.createElement('canvas');
+                return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        if (!isWebGLAvailable()) {
+            document.getElementById('fallback-warning').style.display = 'flex';
+            throw new Error("WebGL not supported");
         }
 
         // Procedural Audio Engine
@@ -198,18 +190,18 @@
 
             motorOsc1 = audioCtx.createOscillator();
             motorOsc1.type = 'sawtooth';
-            motorOsc1.frequency.setValueAtTime(65, audioCtx.currentTime);
+            motorOsc1.frequency.setValueAtTime(75, audioCtx.currentTime);
 
             motorOsc2 = audioCtx.createOscillator();
             motorOsc2.type = 'triangle';
-            motorOsc2.frequency.setValueAtTime(130, audioCtx.currentTime);
+            motorOsc2.frequency.setValueAtTime(150, audioCtx.currentTime);
 
             motorGain = audioCtx.createGain();
             motorGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
 
             filterNode = audioCtx.createBiquadFilter();
             filterNode.type = 'bandpass';
-            filterNode.frequency.setValueAtTime(300, audioCtx.currentTime);
+            filterNode.frequency.setValueAtTime(350, audioCtx.currentTime);
             filterNode.Q.setValueAtTime(3.0, audioCtx.currentTime);
 
             const bufferSize = 2 * audioCtx.sampleRate;
@@ -247,14 +239,14 @@
                 audioCtx.resume();
             }
 
-            const baseFreq = 65 + throttleAmount * 220 + speed * 3.5;
+            const baseFreq = 70 + throttleAmount * 240 + speed * 4.0;
             motorOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
             motorOsc2.frequency.setTargetAtTime(baseFreq * 2.0, audioCtx.currentTime, 0.05);
 
             const targetGain = 0.05 + throttleAmount * 0.18 + Math.min(speed * 0.005, 0.1);
             motorGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.05);
 
-            filterNode.frequency.setTargetAtTime(250 + speed * 18.0, audioCtx.currentTime, 0.05);
+            filterNode.frequency.setTargetAtTime(300 + speed * 20.0, audioCtx.currentTime, 0.05);
             noiseGain.gain.setTargetAtTime(0.02 + Math.min(speed * 0.004, 0.08), audioCtx.currentTime, 0.05);
         }
 
@@ -298,24 +290,6 @@
                     }
                 }
             }
-
-            const tempData = new Uint8ClampedArray(data);
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    let idx = (y * width + x) * 4;
-                    if (data[idx + 3] === 0) {
-                        let solidNeighbors = 0;
-                        if (tempData[((y-1) * width + x) * 4 + 3] > 128) solidNeighbors++;
-                        if (tempData[((y+1) * width + x) * 4 + 3] > 128) solidNeighbors++;
-                        if (tempData[(y * width + (x-1)) * 4 + 3] > 128) solidNeighbors++;
-                        if (tempData[(y * width + (x+1)) * 4 + 3] > 128) solidNeighbors++;
-                        if (solidNeighbors === 0) {
-                            data[idx + 3] = 0;
-                        }
-                    }
-                }
-            }
-
             oCtx.putImageData(imgData, 0, 0);
         }
 
@@ -325,11 +299,10 @@
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xa4caff);
-        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.FogExp2(0xa1d5ff, 0.0015);
 
-        // Field of View set to 140 degrees
-        const camera = new THREE.PerspectiveCamera(140, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(135, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -346,66 +319,43 @@
         }
 
         window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', () => {
-            setTimeout(handleResize, 300);
-        });
-
+        window.addEventListener('orientationchange', () => { setTimeout(handleResize, 300); });
         setTimeout(handleResize, 100);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.6);
-        skyLight.position.set(100, 300, 50);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.7);
+        skyLight.position.set(150, 350, 100);
         scene.add(skyLight);
 
+        // Environment terrain
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
         const ctxFloor = floorCanvas.getContext('2d');
-        ctxFloor.fillStyle = '#4d7c3d'; ctxFloor.fillRect(0, 0, 256, 256);
-        for(let i=0; i<800; i++) {
-            ctxFloor.fillStyle = i % 2 === 0 ? '#568a44' : '#457037';
+        ctxFloor.fillStyle = '#3b6e32'; ctxFloor.fillRect(0, 0, 256, 256);
+        for(let i=0; i<900; i++) {
+            ctxFloor.fillStyle = i % 2 === 0 ? '#467d3c' : '#325d2a';
             ctxFloor.fillRect(Math.random()*256, Math.random()*256, 3, 3);
         }
         const floorTex = new THREE.CanvasTexture(floorCanvas);
         floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping;
-        floorTex.repeat.set(180, 180);
+        floorTex.repeat.set(200, 200);
 
-        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
+        const floorGeo = new THREE.PlaneGeometry(6000, 6000);
         floorGeo.rotateX(-Math.PI / 2);
         const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
 
-        const cloudGroup = new THREE.Group();
-        const cloudCanvas = document.createElement('canvas');
-        cloudCanvas.width = 128; cloudCanvas.height = 128;
-        const ctxCloud = cloudCanvas.getContext('2d');
-        let grad = ctxCloud.createRadialGradient(64,64,10, 64,64,55);
-        grad.addColorStop(0, 'rgba(255,255,255,0.85)');
-        grad.addColorStop(0.4, 'rgba(240,245,255,0.6)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctxCloud.fillStyle = grad; ctxCloud.fillRect(0,0,128,128);
-        const cloudTex = new THREE.CanvasTexture(cloudCanvas);
-
-        const cloudSpriteMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.6 });
-        for(let c=0; c<45; c++) {
-            const sprite = new THREE.Sprite(cloudSpriteMat);
-            sprite.position.set((Math.random()-0.5)*1200, 180 + Math.random()*70, (Math.random()-0.5)*1200);
-            sprite.scale.set(120 + Math.random()*100, 50 + Math.random()*40, 1);
-            cloudGroup.add(sprite);
-        }
-        scene.add(cloudGroup);
-
+        // Obstacles & Avata Canyons / Gates
         const obstacles = [];
         const blockCanvas = document.createElement('canvas');
         blockCanvas.width = 64; blockCanvas.height = 64;
         const ctxBlock = blockCanvas.getContext('2d');
-        ctxBlock.fillStyle = '#6e7a8a'; ctxBlock.fillRect(0,0,64,64);
-        ctxBlock.fillStyle = '#7a8899'; ctxBlock.fillRect(2,2,60,60);
+        ctxBlock.fillStyle = '#5c6573'; ctxBlock.fillRect(0,0,64,64);
         const blockTex = new THREE.CanvasTexture(blockCanvas);
         blockTex.wrapS = THREE.RepeatWrapping; blockTex.wrapT = THREE.RepeatWrapping;
-        blockTex.repeat.set(2, 8);
-
+        blockTex.repeat.set(2, 10);
         const wallMat = new THREE.MeshBasicMaterial({ map: blockTex });
-        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff1144 });
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
 
         function createTrackTower(x, z, width, height, depth) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
@@ -414,109 +364,87 @@
             obstacles.push({ minX: x - width/2, maxX: x + width/2, minZ: z - depth/2, maxZ: z + depth/2, minY: 0, maxY: height });
         }
 
-        function createVelociGate(x, z, rotY) {
-            const gateGroup = new THREE.Group(); const gateW = 15, gateH = 11, thick = 0.7;
+        function createGate(x, z, rotY) {
+            const gateGroup = new THREE.Group(); const gateW = 14, gateH = 10, thick = 0.8;
             const top = new THREE.Mesh(new THREE.BoxGeometry(gateW, thick, thick), gateMat); top.position.y = gateH;
             const left = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); left.position.set(-gateW/2, gateH/2, 0);
             const right = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); right.position.set(gateW/2, gateH/2, 0);
             gateGroup.add(top, left, right); gateGroup.position.set(x, 0, z); gateGroup.rotation.y = rotY; scene.add(gateGroup);
-
-            const isRotated = Math.abs(rotY) > 0.1; const sizeX = isRotated ? thick : gateW; const sizeZ = isRotated ? gateW : thick;
-            const lx = x + (isRotated ? 0 : -gateW/2); const lz = z + (isRotated ? -gateW/2 : 0);
-            obstacles.push({ minX: lx - 0.5, maxX: lx + 0.5, minZ: lz - 0.5, maxZ: lz + 0.5, minY: 0, maxY: gateH });
-            const rx = x + (isRotated ? 0 : gateW/2); const rz = z + (isRotated ? gateW/2 : 0);
-            obstacles.push({ minX: rx - 0.5, maxX: rx + 0.5, minZ: rz - 0.5, maxZ: rz + 0.5, minY: 0, maxY: gateH });
-            obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.4, maxY: gateH + 0.4 });
+            obstacles.push({ minX: x - gateW/2, maxX: x + gateW/2, minZ: z - 1, maxZ: z + 1, minY: gateH - 0.5, maxY: gateH + 0.5 });
         }
 
-        createTrackTower(-60, -100, 30, 70, 30);
-        createTrackTower(70, -120, 35, 90, 35);
-        createTrackTower(-90, 20, 25, 55, 25);
-        createTrackTower(80, 40, 30, 65, 30);
+        createTrackTower(-50, -80, 28, 80, 28);
+        createTrackTower(60, -140, 32, 100, 32);
+        createGate(0, -30, 0);
+        createGate(-40, -90, Math.PI / 4);
+        createGate(40, -160, -Math.PI / 4);
+        createGate(0, -220, 0);
 
-        createVelociGate(0, -20, 0);
-        createVelociGate(-35, -60, Math.PI / 4);
-        createVelociGate(35, -60, -Math.PI / 4);
-        createVelociGate(0, -120, 0);
-        createVelociGate(-50, -170, Math.PI / 2);
-        createVelociGate(50, -170, Math.PI / 2);
-        createVelociGate(0, -240, 0);
-
-        // Drone Construction
+        // DJI Avata 1 Ducted Model
         const droneGroup = new THREE.Group();
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x222225 });
-        const guardMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1c });
+        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x18181a });
+        const ductMat = new THREE.MeshBasicMaterial({ color: 0x222225 });
 
-        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 2.0), bodyMat);
+        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 1.8), bodyMat);
         fuselage.position.y = 0.05;
         droneGroup.add(fuselage);
 
-        const camPod = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
-        camPod.position.set(0, -0.05, 1.05);
+        const camPod = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+        camPod.position.set(0, -0.05, 0.95);
         droneGroup.add(camPod);
 
-        const ringGeo = new THREE.CylinderGeometry(1.0, 1.0, 0.5, 24, 1, true);
-        const bladeMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-
+        const ringGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.45, 24, 1, true);
+        const bladeMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
         const propMeshes = [];
-        const ductedOffsets = [{x: 1.15, z: 0.9}, {x: -1.15, z: 0.9}, {x: 1.15, z: -0.9}, {x: -1.15, z: -0.9}];
+        const ductedOffsets = [{x: 1.05, z: 0.8}, {x: -1.05, z: 0.8}, {x: 1.05, z: -0.8}, {x: -1.05, z: -0.8}];
 
         ductedOffsets.forEach(pos => {
-            const ring = new THREE.Mesh(ringGeo, guardMat);
+            const ring = new THREE.Mesh(ringGeo, ductMat);
             ring.position.set(pos.x, 0.1, pos.z);
             droneGroup.add(ring);
-
-            const blade = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.03, 0.18), bladeMat);
+            const blade = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.03, 0.15), bladeMat);
             blade.position.set(pos.x, 0.1, pos.z);
             droneGroup.add(blade);
             propMeshes.push(blade);
         });
-
         scene.add(droneGroup);
 
         const drone = {
-            position: new THREE.Vector3(0, 0.3, 45), 
+            position: new THREE.Vector3(0, 0.3, 40),
             velocity: new THREE.Vector3(0, 0, 0),
-            rotation: new THREE.Quaternion(),
-            yaw: 0 // Absolute flat horizontal heading angle
+            rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
+            yaw: 0,
+            pitch: 0,
+            roll: 0
         };
 
+        // DJI Flight Modes: 1 = N (Normal), 2 = S (Sport - Avata 1 Bank-to-Turn), 3 = M (Manual Acro)
         const MODES = {
-            1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, maxSpeed: 18.0 },
-            2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, maxSpeed: 28.0 },
-            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, maxSpeed: 38.0 },
-            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, maxSpeed: 45.0 }
+            1: { name: "NORMAL (N)", maxSpeed: 14.0, agility: 1.0 },
+            2: { name: "SPORT (S - Avata 1)", maxSpeed: 27.0, agility: 2.2 },
+            3: { name: "MANUAL (M)", maxSpeed: 38.0, agility: 4.5 }
         };
-        let activeMode = 1;
-        let cameraMode = "TPV";
-
-        let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
-        let isSpawnedSafe = true; 
+        let activeMode = 2; // Default to Sport Mode like Avata 1
+        let cameraMode = "FPV";
 
         let keys = { w: false, s: false, a: false, d: false };
         let mouseXMove = 0, mouseYMove = 0;
         let rawMouseX = 0, rawMouseY = 0;
-
         let touchLeftValX = 0, touchLeftValY = 0;
         let touchRightValX = 0, touchRightValY = 0;
 
-        const MOUSE_SENSITIVITY = 0.003; 
-        const YAW_RATE = 2.8;
-        const GRAVITY = 9.81;
-        const CAMERA_UPTILT = 0; // Camera tilt set to 0 degrees flat horizon
+        const MOUSE_SENSITIVITY = 0.0035;
 
         function startGameSession() {
             initAudio();
             handleResize();
             inst.style.display = 'none';
-            if (!isMobile) {
-                container.requestPointerLock();
-            }
+            if (!isMobile) { container.requestPointerLock(); }
         }
         container.addEventListener('click', startGameSession);
         inst.addEventListener('click', startGameSession);
 
-        document.addEventListener('pointerlockchange', () => { 
+        document.addEventListener('pointerlockchange', () => {
             if (!isMobile) {
                 const isLocked = (document.pointerLockElement === container);
                 inst.style.display = isLocked ? 'none' : 'flex';
@@ -525,7 +453,7 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (['1','2','3','4'].includes(e.key)) {
+            if (['1','2','3'].includes(e.key)) {
                 activeMode = parseInt(e.key);
                 updateMobileModeButtonText();
                 return;
@@ -550,23 +478,20 @@
             if (isMobile || document.pointerLockElement !== container) return;
             mouseXMove = e.movementX * MOUSE_SENSITIVITY;
             mouseYMove = -e.movementY * MOUSE_SENSITIVITY;
-            
             rawMouseX += e.movementX * 0.4;
             rawMouseY += e.movementY * 0.4;
-            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
-            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
+            rawMouseX = Math.max(-28, Math.min(28, rawMouseX));
+            rawMouseY = Math.max(-28, Math.min(28, rawMouseY));
         });
 
         function updateMobileModeButtonText() {
             const btn = document.getElementById('mobile-mode-btn');
-            if (btn) {
-                btn.innerText = `MODE: ${MODES[activeMode].name}`;
-            }
+            if (btn) btn.innerText = `MODE: ${MODES[activeMode].name}`;
         }
 
         document.getElementById('mobile-mode-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            activeMode = (activeMode % 4) + 1;
+            activeMode = (activeMode % 3) + 1;
             updateMobileModeButtonText();
         });
 
@@ -589,9 +514,7 @@
                 e.preventDefault();
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
-                    if (touch.identifier === activeTouchId) {
-                        updateStick(touch);
-                    }
+                    if (touch.identifier === activeTouchId) updateStick(touch);
                 }
             }, { passive: false });
 
@@ -614,12 +537,7 @@
                 let dx = touch.clientX - centerX;
                 let dy = touch.clientY - centerY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist > maxDist) {
-                    dx = (dx / dist) * maxDist;
-                    dy = (dy / dist) * maxDist;
-                }
-
+                if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
                 knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 callback(dx / maxDist, dy / maxDist);
             }
@@ -627,23 +545,15 @@
 
         if (isMobile) {
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
-                touchLeftValX = x;  // Yaw: lihat kanan/kiri
-                touchLeftValY = y;  // Throttle: terbang atas/turun (-y adalah atas)
+                touchLeftValX = x; touchLeftValY = y;
             });
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
-                touchRightValX = x; // Kanan/kiri move
-                touchRightValY = y; // Maju/mundur (-y adalah maju)
+                touchRightValX = x; touchRightValY = y;
             });
         }
 
-        document.getElementById('btn-switch-view').addEventListener('click', (e) => {
-            e.stopPropagation();
-            cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
-        });
-        document.getElementById('btn-retry').addEventListener('click', (e) => {
-            e.stopPropagation();
-            resetDrone();
-        });
+        document.getElementById('btn-switch-view').addEventListener('click', (e) => { e.stopPropagation(); cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; });
+        document.getElementById('btn-retry').addEventListener('click', (e) => { e.stopPropagation(); resetDrone(); });
         document.getElementById('btn-pause').addEventListener('click', (e) => {
             e.stopPropagation();
             if (!isMobile) document.exitPointerLock();
@@ -651,43 +561,23 @@
         });
 
         function resetDrone() {
-            drone.position.set(0, 0.3, 45); 
-            drone.velocity.set(0, 0, 0); 
-            drone.yaw = 0;
-            drone.rotation.set(0, 0, 0);
-            tumbleRotationVelocity.set(0, 0, 0); 
-            isSpawnedSafe = true; 
+            drone.position.set(0, 0.3, 40);
+            drone.velocity.set(0, 0, 0);
+            drone.yaw = 0; drone.pitch = 0; drone.roll = 0;
             rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
             handleResize();
         }
 
         function handleCollisions() {
-            const px = drone.position.x; const py = drone.position.y; const pz = drone.position.z; 
-            const buffer = 0.8; 
-
+            const px = drone.position.x, py = drone.position.y, pz = drone.position.z;
+            const buffer = 0.7;
             for(let i = 0; i < obstacles.length; i++) {
                 const obs = obstacles[i];
                 if(px + buffer > obs.minX && px - buffer < obs.maxX && pz + buffer > obs.minZ && pz - buffer < obs.maxZ) {
                     if(py + buffer > obs.minY && py - buffer < obs.maxY) {
-                        let overlapX = Math.min(obs.maxX - (px - buffer), (px + buffer) - obs.minX);
-                        let overlapZ = Math.min(obs.maxZ - (pz - buffer), (pz + buffer) - obs.minZ);
-                        let speedH = Math.sqrt(drone.velocity.x * drone.velocity.x + drone.velocity.z * drone.velocity.z);
-
-                        if (overlapX < overlapZ) {
-                            drone.position.x += (px > (obs.minX + obs.maxX)/2) ? overlapX : -overlapX;
-                            drone.velocity.x *= -0.4;
-                        } else {
-                            drone.position.z += (pz > (obs.minZ + obs.maxZ)/2) ? overlapZ : -overlapZ;
-                            drone.velocity.z *= -0.4;
-                        }
-
-                        if (speedH > 4.5) {
-                            tumbleRotationVelocity.set((Math.random() - 0.5) * 40.0, (Math.random() - 0.5) * 30.0, (Math.random() - 0.5) * 40.0);
-                            drone.velocity.y = speedH * 0.35 + 2.0; 
-                        } else {
-                            drone.velocity.y = 2.2; 
-                        }
+                        drone.velocity.multiplyScalar(-0.3);
+                        drone.position.y += 1.0;
                     }
                 }
             }
@@ -700,102 +590,92 @@
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
-            let throttleInput = 0; // Stick Left Up/Down (Terbang atas / turun)
-            let yawInput = 0;      // Stick Left Left/Right (Lihat kanan / kiri)
-            let pitchInput = 0;    // Stick Right Forward/Back (Maju / mundur)
-            let rollInput = 0;     // Stick Right Left/Right (Kanan / kiri move)
+            let throttleInput = 0;
+            let yawInput = 0;
+            let pitchInput = 0;
+            let rollInput = 0;
 
             if (isMobile) {
-                throttleInput = -touchLeftValY; 
-                yawInput = touchLeftValX * YAW_RATE * dt;
-                pitchInput = -touchRightValY;   
-                rollInput = touchRightValX;     
+                throttleInput = -touchLeftValY;
+                yawInput = touchLeftValX * 2.5 * dt;
+                pitchInput = -touchRightValY;
+                rollInput = touchRightValX;
             } else {
-                if (keys.w) throttleInput = 1.0;  // Atas
-                if (keys.s) throttleInput = -1.0; // Turun
-                if (keys.a) yawInput = -YAW_RATE * dt; // Lihat Kiri
-                if (keys.d) yawInput = YAW_RATE * dt;  // Lihat Kanan
-
+                if (keys.w) throttleInput = 1.0;
+                if (keys.s) throttleInput = -1.0;
+                if (keys.a) yawInput = -2.5 * dt;
+                if (keys.d) yawInput = 2.5 * dt;
                 if (document.pointerLockElement === container) {
-                    pitchInput = -mouseYMove * 10.0; // Maju Mundur (Mouse Y)
-                    rollInput = mouseXMove * 10.0;   // Kanan Kiri Move (Mouse X)
+                    pitchInput = -mouseYMove * 8.0;
+                    rollInput = mouseXMove * 8.0;
                 }
             }
 
-            // Update Yaw (Lihat Kanan / Kiri)
-            drone.yaw -= yawInput;
-            drone.rotation.set(0, drone.yaw, 0, 'YXZ');
+            // DJI Avata 1 Sport (S) Mode Flight Physics & Bank-to-Turn
+            if (activeMode === 2) {
+                // S-Mode: Yaw input combines with roll for authentic bank-to-turn responsiveness
+                drone.yaw -= yawInput + (rollInput * 1.5 * dt);
+                drone.roll = THREE.MathUtils.lerp(drone.roll, -rollInput * 0.85, 10.0 * dt);
+                drone.pitch = THREE.MathUtils.lerp(drone.pitch, pitchInput * 0.6, 10.0 * dt);
 
-            if (drone.position.y > 1.5) { isSpawnedSafe = false; }
+                const forwardDir = new THREE.Vector3(Math.sin(drone.yaw), 0, Math.cos(drone.yaw));
+                const targetSpeed = (throttleInput > 0 ? modeCfg.maxSpeed : modeCfg.maxSpeed * 0.5) * Math.max(0.2, throttleInput + 0.5);
+                
+                const moveForce = forwardDir.multiplyScalar((throttleInput + 0.6) * 18.0);
+                drone.velocity.addScaledVector(moveForce, dt);
+                drone.velocity.y = THREE.MathUtils.lerp(drone.velocity.y, throttleInput * 6.0, 8.0 * dt);
 
-            if (tumbleRotationVelocity.lengthSq() > 0.001) {
-                const tumbleQuaternion = new THREE.Quaternion().setFromEuler(
-                    new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ')
-                );
-                drone.rotation.multiply(tumbleQuaternion).normalize();
-                tumbleRotationVelocity.multiplyScalar(Math.exp(-3.0 * dt)); 
+            } else if (activeMode === 3) {
+                // Manual Acro Mode
+                drone.yaw -= yawInput * 1.5;
+                drone.roll += rollInput * dt * 4.0;
+                drone.pitch += pitchInput * dt * 4.0;
+                drone.rotation.set(drone.pitch, drone.yaw, drone.roll, 'YXZ');
+                
+                const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(drone.rotation);
+                drone.velocity.addScaledVector(forwardDir, throttleInput * 25.0 * dt);
+                drone.velocity.y -= 9.81 * dt; // Gravity
+
+            } else {
+                // Normal (N) Mode - Stable self-leveling
+                drone.yaw -= yawInput;
+                drone.roll = THREE.MathUtils.lerp(drone.roll, 0, 12.0 * dt);
+                drone.pitch = THREE.MathUtils.lerp(drone.pitch, 0, 12.0 * dt);
+
+                const forwardDir = new THREE.Vector3(Math.sin(drone.yaw), 0, Math.cos(drone.yaw));
+                drone.velocity.copy(forwardDir.multiplyScalar(throttleInput * modeCfg.maxSpeed));
+                drone.velocity.y = THREE.MathUtils.lerp(drone.velocity.y, throttleInput * 4.0, 10.0 * dt);
             }
 
-            // Direction vectors based purely on flat yaw heading (No pitch/roll tilt animation to prevent dizziness)
-            const forwardDir = new THREE.Vector3(Math.sin(drone.yaw), 0, Math.cos(drone.yaw));
-            const rightDir = new THREE.Vector3(Math.cos(drone.yaw), 0, -Math.sin(drone.yaw));
-
-            // Lift force (Terbang atas / turun)
-            const liftForce = (throttleInput * modeCfg.maxThrust) + (GRAVITY * 1.0); 
-            
-            // Movement force (Maju mundur, kanan kiri)
-            const moveForceForward = forwardDir.multiplyScalar(pitchInput * modeCfg.maxThrust * 0.85);
-            const moveForceSide = rightDir.multiplyScalar(rollInput * modeCfg.maxThrust * 0.85);
-
-            const accel = new THREE.Vector3(0, liftForce - GRAVITY, 0).add(moveForceForward).add(moveForceSide);
-            drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
-            drone.velocity.addScaledVector(accel, dt);
-            
-            // Speed clamp
-            let horizontalVel = new THREE.Vector3(drone.velocity.x, 0, drone.velocity.z);
-            if (horizontalVel.length() > modeCfg.maxSpeed) {
-                horizontalVel.normalize().multiplyScalar(modeCfg.maxSpeed);
-                drone.velocity.x = horizontalVel.x;
-                drone.velocity.z = horizontalVel.z;
+            if (activeMode !== 3) {
+                drone.rotation.set(drone.pitch, drone.yaw, drone.roll, 'YXZ');
             }
 
+            drone.velocity.multiplyScalar(0.96); // Drag
             drone.position.addScaledVector(drone.velocity, dt);
 
-            const currentSpeed = drone.velocity.length();
-            const throttleIntensity = Math.abs(throttleInput) + Math.abs(pitchInput) + Math.abs(rollInput) + 0.3;
-            updateAudioEngine(throttleIntensity, currentSpeed);
-
             if (drone.position.y < 0.3) {
-                drone.position.y = 0.3; 
-                if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
-                    tumbleRotationVelocity.set((Math.random()-0.5)*30, (Math.random()-0.5)*20, (Math.random()-0.5)*30);
-                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.3 + 1.0;
-                } else {
-                    drone.velocity.y = 0;
-                }
-                drone.velocity.x *= 0.6; drone.velocity.z *= 0.6;
+                drone.position.y = 0.3;
+                drone.velocity.y = 0;
             }
 
             handleCollisions();
 
             droneGroup.position.copy(drone.position);
-            droneGroup.quaternion.copy(drone.rotation);
+            droneGroup.quaternion.setFromEuler(drone.rotation);
+            propMeshes.forEach(prop => { prop.rotation.y += 0.8; });
 
-            propMeshes.forEach(prop => { prop.rotation.y += (0.4 + throttleIntensity * 0.6); });
-
-            cloudGroup.children.forEach(c => {
-                c.position.x += 1.5 * dt;
-                if(c.position.x > 600) c.position.x = -600;
-            });
+            const currentSpeed = drone.velocity.length();
+            updateAudioEngine(Math.abs(throttleInput) + 0.2, currentSpeed);
 
             if (cameraMode === "FPV") {
                 camera.position.copy(drone.position);
-                camera.quaternion.copy(drone.rotation); // Camera tilt = 0 (Flat horizon)
+                camera.quaternion.copy(droneGroup.quaternion);
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
-                const backOffset = new THREE.Vector3(0, 2.2, 6.5).applyQuaternion(drone.rotation);
-                camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.2);
+                const backOffset = new THREE.Vector3(0, 2.0, 6.0).applyEuler(drone.rotation);
+                camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.25);
                 camera.lookAt(drone.position);
             }
 
@@ -803,19 +683,11 @@
 
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
-            let leftY, leftX, rightX, rightY;
+            let leftY = (isMobile ? touchLeftValY : (keys.s ? 1 : (keys.w ? -1 : 0))) * 35;
+            let leftX = (isMobile ? touchLeftValX : (keys.d ? 1 : (keys.a ? -1 : 0))) * 24;
+            let rightX = isMobile ? touchRightValX * 35 : rawMouseX;
+            let rightY = isMobile ? touchRightValY * 35 : rawMouseY;
 
-            if (isMobile) {
-                leftY = touchLeftValY * 35;
-                leftX = touchLeftValX * 35;
-                rightX = touchRightValX * 35;
-                rightY = touchRightValY * 35;
-            } else {
-                leftY = (keys.s ? 1 : (keys.w ? -1 : 0)) * 35; 
-                leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
-                rightX = rawMouseX;
-                rightY = rawMouseY;
-            }
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
