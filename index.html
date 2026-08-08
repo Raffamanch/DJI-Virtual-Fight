@@ -3,138 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FPV Stadium Simulator - DJI Fly UI</title>
+    <title>DJI Goggles 3 - FPV Stadium Simulator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* DJI Fly UI Overlay */
-        #ui-overlay {
+        /* DJI Goggles 3 OSD Overlay Style */
+        #osd-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 6; pointer-events: none; color: #ffffff; font-size: 12px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            z-index: 6; pointer-events: none; color: #ffffff; font-family: monospace;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
         }
 
-        /* Top Bar */
-        .top-bar-item { pointer-events: auto; cursor: pointer; }
-        #top-left-status {
-            position: absolute; top: max(12px, env(safe-area-inset-top)); left: 20px;
-            display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.4);
-            padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15);
+        /* Center Crosshair */
+        #osd-crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 16px; height: 16px; pointer-events: none;
         }
-        #flight-mode-badge {
-            background: #ffcc00; color: #000; font-weight: bold; padding: 2px 6px; border-radius: 3px; font-size: 11px;
+        #osd-crosshair::before, #osd-crosshair::after {
+            content: ''; position: absolute; background: rgba(255, 255, 255, 0.85);
+        }
+        #osd-crosshair::before { top: 7px; left: 0; width: 16px; height: 2px; }
+        #osd-crosshair::after { top: 0; left: 7px; width: 2px; height: 16px; }
+
+        /* Bottom Left: Flight Mode Box + Telemetry */
+        #osd-bottom-left {
+            position: absolute; bottom: 25px; left: 30px;
+            display: flex; align-items: flex-end; gap: 12px;
+        }
+        #osd-mode-box {
+            background: #ffffff; color: #000000; font-weight: 900; font-size: 22px;
+            padding: 4px 12px; border-radius: 4px; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+        #osd-telemetry-grid {
+            display: grid; grid-template-columns: auto auto; column-gap: 16px; row-gap: 2px;
+            font-size: 14px; font-weight: bold; align-items: center; padding-bottom: 2px;
+        }
+        .tele-item span { font-weight: normal; opacity: 0.8; margin-right: 2px; }
+
+        /* Bottom Right: Icons */
+        #osd-bottom-right {
+            position: absolute; bottom: 25px; right: 30px;
+            display: flex; align-items: center; gap: 14px; font-size: 18px; opacity: 0.9;
         }
 
-        #top-right-controls {
-            position: absolute; top: max(12px, env(safe-area-inset-top)); right: 20px;
-            display: flex; align-items: center; gap: 15px;
+        /* Top Right: FPS and _M_ format indicator */
+        #osd-top-right {
+            position: absolute; top: 20px; right: 30px;
+            display: flex; align-items: center; gap: 16px; font-size: 13px; font-weight: bold; pointer-events: auto;
         }
-        .icon-btn {
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); width: 34px; height: 34px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto;
-            color: #fff; font-size: 14px;
+        .top-btn {
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); padding: 5px 10px;
+            border-radius: 4px; cursor: pointer; color: #fff; font-family: monospace;
         }
-        .icon-btn:active { background: rgba(255,255,255,0.3); }
+        .top-btn:hover { background: rgba(255,255,255,0.2); }
 
-        /* Telemetry HUD Bottom Bar */
-        #telemetry-bar {
-            position: absolute; bottom: 20px; left: 20px;
-            display: flex; align-items: center; gap: 12px;
-            background: rgba(0, 0, 0, 0.5); padding: 6px 14px; border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.15); font-family: monospace; font-size: 13px;
+        /* RC Stick Overlay (Bottom Corners) */
+        .rc-stick-display {
+            position: absolute; bottom: 20px; width: 90px; height: 90px;
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            pointer-events: none; z-index: 5;
         }
-        .telemetry-val span { color: #aaa; font-size: 10px; margin-right: 2px; }
-
-        /* Camera Gimbal Slider (Right side vertical) */
-        #gimbal-slider-container {
-            position: absolute; right: 25px; top: 50%; transform: translateY(-50%);
-            width: 32px; height: 180px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-            padding: 8px 0; pointer-events: auto;
-        }
-        .gimbal-tick { width: 8px; height: 1px; background: rgba(255,255,255,0.5); }
-        .gimbal-indicator { font-size: 10px; font-family: monospace; color: #ffcc00; }
-
-        /* FPS Counter */
-        #fps-display {
-            position: absolute; bottom: 25px; right: 80px; font-family: monospace; font-size: 12px; color: #fff;
+        #rc-left { left: 160px; }
+        #rc-right { right: 160px; }
+        .rc-gimbal-dot {
+            width: 14px; height: 14px; background: #ffcc00; border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.8); position: absolute;
+            transform: translate(0px, 0px); transition: transform 0.05s linear;
         }
 
-        /* Touch Joysticks Overlay (Mobile Only) */
+        /* Touch Joysticks (Mobile Control Overlay) */
         #touch-controls {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
             z-index: 9; pointer-events: none; display: none;
         }
         .touch-pad {
-            position: absolute; bottom: 20px; width: 140px; height: 140px;
-            background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.2);
+            position: absolute; bottom: 20px; width: 130px; height: 130px;
+            background: rgba(255, 255, 255, 0.04); border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%; pointer-events: auto; touch-action: none;
         }
         #touch-left-pad { left: 30px; }
-        #touch-right-pad { right: 80px; }
-        
+        #touch-right-pad { right: 30px; }
         .touch-knob {
-            position: absolute; top: 50%; left: 50%; width: 54px; height: 54px;
-            background: rgba(255, 255, 255, 0.5); border: 2px solid #ffffff;
-            border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.4); border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none;
         }
 
-        /* MAIN MENU SCREEN */
-        #instructions {
-            position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4);
+        /* HOME / SETTINGS MENU MODAL */
+        #home-menu {
+            position: absolute; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.88);
             color: #ffffff; display: flex; flex-direction: column; justify-content: center;
-            align-items: center; text-align: center; cursor: pointer; z-index: 10;
+            align-items: center; text-align: center; z-index: 20; backdrop-filter: blur(8px);
         }
-        #menu-content {
-            background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%;
+        .menu-card {
+            background: rgba(25, 32, 45, 0.95); padding: 30px 40px; border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.7); max-width: 480px; width: 90%;
         }
-        h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffcc00; }
-        p { line-height: 1.6; font-size: 14px; color: #eee; }
+        h1 { margin-bottom: 8px; font-size: 22px; letter-spacing: 1px; color: #ffcc00; }
+        .subtitle { font-size: 12px; color: #888; margin-bottom: 25px; }
+        
+        .menu-section { margin-bottom: 20px; text-align: left; }
+        .menu-section label { display: block; font-size: 12px; color: #aaa; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; }
+        
+        .mode-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mode-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;
+            padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: all 0.2s;
+        }
+        .mode-btn.active { background: #ffcc00; color: #000; border-color: #ffcc00; }
+
+        .graphic-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .graphic-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;
+            padding: 8px 4px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center;
+        }
+        .graphic-btn.active { background: #00ffcc; color: #000; border-color: #00ffcc; }
+
+        .start-btn {
+            width: 100%; background: linear-gradient(135deg, #ffcc00, #ff9900); color: #000;
+            border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: bold;
+            cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(255,204,0,0.3); transition: transform 0.1s;
+        }
+        .start-btn:active { transform: scale(0.98); }
+        .controls-hint { margin-top: 15px; font-size: 11px; color: #777; line-height: 1.5; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
+    <!-- HOME / SETTINGS SCREEN -->
+    <div id="home-menu">
+        <div class="menu-card">
+            <h1>DJI Goggles 3 Simulator</h1>
+            <div class="subtitle">FPV Stadium Drone Experience</div>
+
+            <div class="menu-section">
+                <label>Control Mode</label>
+                <div class="mode-select-grid">
+                    <button class="mode-btn active" id="btn-mode-desktop" onclick="setControlMode('desktop')">💻 Desktop Mode</button>
+                    <button class="mode-btn" id="btn-mode-mobile" onclick="setControlMode('mobile')">📱 Mobile Mode</button>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <label>Graphics Preset (Press 'O' in-game)</label>
+                <div class="graphic-select-grid">
+                    <button class="graphic-btn" id="gfx-low" onclick="setGraphics('low')">Low</button>
+                    <button class="graphic-btn active" id="gfx-medium" onclick="setGraphics('medium')">Medium</button>
+                    <button class="graphic-btn" id="gfx-high" onclick="setGraphics('high')">High</button>
+                    <button class="graphic-btn" id="gfx-ultra" onclick="setGraphics('ultra')">Ultra</button>
+                </div>
+            </div>
+
+            <button class="start-btn" onclick="launchSimulator()">START FLIGHT</button>
+
+            <div class="controls-hint" id="hint-text">
+                <b>Desktop Controls:</b> W/S Throttle, A/D Yaw, Mouse Pitch/Roll, R Reset, O Settings
+            </div>
+        </div>
+    </div>
+
     <div id="canvas-container">
-        <!-- DJI Fly UI Overlay Layers -->
-        <div id="ui-overlay">
-            <div id="top-left-status" class="top-bar-item" id="btn-cycle-mode">
-                <span id="flight-mode-badge">N</span>
-                <span>GPS Ready</span>
+        <!-- DJI Goggles 3 OSD Layout -->
+        <div id="osd-overlay">
+            <div id="osd-crosshair"></div>
+
+            <div id="osd-top-right">
+                <div id="osd-fps">60 FPS</div>
+                <div id="osd-mode-format" style="color: #ffcc00;">_M_</div>
+                <button class="top-btn" onclick="openSettings()">⚙ Settings</button>
             </div>
 
-            <div id="top-right-controls">
-                <div class="icon-btn" id="btn-switch-view" title="Switch View">📷</div>
-                <div class="icon-btn" id="btn-pause" title="Pause / Menu">⏸</div>
+            <div id="osd-bottom-left">
+                <div id="osd-mode-box">M</div>
+                <div id="osd-telemetry-grid">
+                    <div class="tele-item" id="tele-speed">0.0km/h</div>
+                    <div class="tele-item" id="tele-speed2">0.0km/h</div>
+                    <div class="tele-item" id="tele-height"><span>H</span> 0.0m</div>
+                    <div class="tele-item" id="tele-dist"><span>D</span> -- m</div>
+                </div>
             </div>
 
-            <div id="gimbal-slider-container">
-                <span class="gimbal-indicator">+20°</span>
-                <div class="gimbal-tick"></div>
-                <div class="gimbal-tick"></div>
-                <div class="gimbal-tick" style="background:#ffcc00; width:12px;"></div>
-                <div class="gimbal-tick"></div>
-                <div class="gimbal-tick"></div>
-                <span class="gimbal-indicator" id="gimbal-val">-24°</span>
+            <div id="osd-bottom-right">
+                <div>🥽</div>
+                <div>🎮</div>
             </div>
 
-            <div id="telemetry-bar">
-                <div class="telemetry-val" id="tele-speed"><span>S</span> 0.0m/s</div>
-                <div style="color:rgba(255,255,255,0.3)">|</div>
-                <div class="telemetry-val" id="tele-height"><span>H</span> 0.0m</div>
-                <div style="color:rgba(255,255,255,0.3)">|</div>
-                <div class="telemetry-val" id="tele-dist"><span>D</span> 0.0m</div>
+            <!-- RC Stick Live Visualizers -->
+            <div class="rc-stick-display" id="rc-left">
+                <div class="rc-gimbal-dot" id="dot-left"></div>
             </div>
-
-            <div id="fps-display">61 FPS</div>
+            <div class="rc-stick-display" id="rc-right">
+                <div class="rc-gimbal-dot" id="dot-right"></div>
+            </div>
         </div>
 
-        <!-- Touch Controls (Mobile) -->
+        <!-- Touch Joysticks (Active in Mobile Mode) -->
         <div id="touch-controls">
             <div id="touch-left-pad" class="touch-pad">
                 <div id="touch-left-knob" class="touch-knob"></div>
@@ -143,42 +211,43 @@
                 <div id="touch-right-knob" class="touch-knob"></div>
             </div>
         </div>
-
-        <div id="instructions">
-            <div id="menu-content">
-                <h1>DJI Stadium Simulator</h1>
-                <p id="instruction-text">
-                    <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
-                    <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
-                    <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode (N/S/M/A)<br><br>
-                    <span style="color: #00ffcc;">✓ Realistic Stadium Arena & DJI Fly Interface Active</span>
-                </p>
-            </div>
-        </div>
     </div>
 
     <script>
-        const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let selectedControlMode = 'desktop';
+        let selectedGraphics = 'medium';
 
-        if (isMobile) {
-            document.getElementById('touch-controls').style.display = 'block';
-            document.getElementById('instruction-text').innerHTML = `
-                <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
-                <b>[ Right Joystick ]</b> : Pitch & Roll<br>
-                <b>[ Top Left Badge ]</b> : Tap to Cycle Flight Mode<br><br>
-                <span style="color: #00ffcc;">✓ Realistic Stadium Arena & DJI Fly Interface Active</span>
-            `;
+        function setControlMode(mode) {
+            selectedControlMode = mode;
+            document.getElementById('btn-mode-desktop').classList.toggle('active', mode === 'desktop');
+            document.getElementById('btn-mode-mobile').classList.toggle('active', mode === 'mobile');
+            document.getElementById('hint-text').innerHTML = mode === 'desktop' ? 
+                '<b>Desktop Controls:</b> W/S Throttle, A/D Yaw, Mouse Pitch/Roll, R Reset, O Settings' :
+                '<b>Mobile Controls:</b> Left Stick (Throttle/Yaw), Right Stick (Pitch/Roll), O Settings';
         }
 
-        // --- WEB AUDIO API MOTOR SOUND ENGINE ---
-        let audioCtx = null;
-        let motorOsc = null;
-        let motorGain = null;
-        let noiseNode = null;
-        let noiseGain = null;
-        let isAudioInitialized = false;
+        function setGraphics(preset) {
+            selectedGraphics = preset;
+            ['low', 'medium', 'high', 'ultra'].forEach(p => {
+                document.getElementById('gfx-' + p).classList.toggle('active', p === preset);
+            });
+            applyGraphicsSettings();
+        }
+
+        function openSettings() {
+            document.getElementById('home-menu').style.display = 'flex';
+            if (!isMobileDevice && document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+        }
+
+        const isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobileDevice) {
+            setControlMode('mobile');
+        }
+
+        // --- WEB AUDIO MOTOR SOUND ENGINE ---
+        let audioCtx = null, motorOsc = null, motorGain = null, noiseNode = null, noiseGain = null, isAudioInitialized = false;
 
         function initAudio() {
             if (isAudioInitialized) return;
@@ -200,9 +269,7 @@
             const bufferSize = 2 * audioCtx.sampleRate;
             const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                output[i] = Math.random() * 2 - 1;
-            }
+            for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
 
             noiseNode = audioCtx.createBufferSource();
             noiseNode.buffer = noiseBuffer;
@@ -211,7 +278,6 @@
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'bandpass';
             filter.frequency.setValueAtTime(300, audioCtx.currentTime);
-            filter.Q.setValueAtTime(1.0, audioCtx.currentTime);
 
             noiseGain = audioCtx.createGain();
             noiseGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
@@ -226,331 +292,286 @@
 
         function updateAudioEngine(throttle) {
             if (!isAudioInitialized || !audioCtx) return;
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            const baseGain = 0.015 + throttle * 0.12; 
-            motorGain.gain.setTargetAtTime(baseGain, audioCtx.currentTime, 0.05);
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            motorGain.gain.setTargetAtTime(0.015 + throttle * 0.12, audioCtx.currentTime, 0.05);
             motorOsc.frequency.setTargetAtTime(55 + throttle * 130, audioCtx.currentTime, 0.05);
             noiseGain.gain.setTargetAtTime(throttle * 0.06, audioCtx.currentTime, 0.05);
         }
 
         const container = document.getElementById('canvas-container');
-        const inst = document.getElementById('instructions');
-        
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xa4caff);
-        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0015);
+        scene.background = new THREE.Color(0x90b5ff);
+        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0012);
 
-        const camera = new THREE.PerspectiveCamera(110, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(110, window.innerWidth / window.innerHeight, 0.1, 3000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        function handleResize() {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        }
-
-        window.addEventListener('resize', handleResize);
-
-        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.7);
-        skyLight.position.set(100, 300, 50);
-        scene.add(skyLight);
-
-        // --- STADIUM & PITCH CONSTRUCTION ---
-        const turfCanvas = document.createElement('canvas');
-        turfCanvas.width = 256; turfCanvas.height = 256;
-        const ctxTurf = turfCanvas.getContext('2d');
-        ctxTurf.fillStyle = '#4d8c3d'; ctxTurf.fillRect(0, 0, 256, 256);
-        // Field pattern stripes
-        for(let i=0; i<8; i++) {
-            if(i % 2 === 0) {
-                ctxTurf.fillStyle = 'rgba(0,0,0,0.07)';
-                ctxTurf.fillRect(0, i * 32, 256, 32);
+        function applyGraphicsSettings() {
+            if (!renderer) return;
+            switch(selectedGraphics) {
+                case 'low':
+                    renderer.setPixelRatio(1);
+                    renderer.shadowMap.enabled = false;
+                    scene.fog.density = 0.002;
+                    break;
+                case 'medium':
+                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+                    renderer.shadowMap.enabled = true;
+                    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    scene.fog.density = 0.0012;
+                    break;
+                case 'high':
+                    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                    renderer.shadowMap.enabled = true;
+                    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    scene.fog.density = 0.0008;
+                    break;
+                case 'ultra':
+                    renderer.setPixelRatio(window.devicePixelRatio);
+                    renderer.shadowMap.enabled = true;
+                    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    scene.fog.density = 0.0005;
+                    break;
             }
         }
-        const turfTex = new THREE.CanvasTexture(turfCanvas);
-        turfTex.wrapS = THREE.RepeatWrapping; turfTex.wrapT = THREE.RepeatWrapping;
-        turfTex.repeat.set(1, 2);
+        applyGraphicsSettings();
 
-        // Football Pitch Floor
-        const pitchGeo = new THREE.PlaneGeometry(80, 130);
-        pitchGeo.rotateX(-Math.PI / 2);
-        const pitchMat = new THREE.MeshBasicMaterial({ map: turfTex });
-        const pitch = new THREE.Mesh(pitchGeo, pitchMat);
-        pitch.position.set(0, 0, 0);
+        function handleResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', handleResize);
+
+        // --- LIGHTS & REALISTIC SHADOWS ---
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const sunLight = new THREE.DirectionalLight(0xfffae0, 0.9);
+        sunLight.position.set(150, 350, 100);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 1000;
+        const d = 150;
+        sunLight.shadow.camera.left = -d;
+        sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d;
+        sunLight.shadow.camera.bottom = -d;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        // --- REALISTIC STADIUM ENVIRONMENT ---
+        const turfCanvas = document.createElement('canvas');
+        turfCanvas.width = 512; turfCanvas.height = 512;
+        const ctxTurf = turfCanvas.getContext('2d');
+        ctxTurf.fillStyle = '#417c34'; ctxTurf.fillRect(0, 0, 512, 512);
+        for(let i=0; i<10; i++) {
+            if(i % 2 === 0) { ctxTurf.fillStyle = 'rgba(0,0,0,0.08)'; ctxTurf.fillRect(0, i * 51.2, 512, 51.2); }
+        }
+        const turfTex = new THREE.CanvasTexture(turfCanvas);
+        turfTex.wrapS = THREE.RepeatWrapping; turfTex.wrapT = THREE.RepeatWrapping; turfTex.repeat.set(1, 2);
+
+        const pitch = new THREE.Mesh(new THREE.PlaneGeometry(90, 140), new THREE.MeshStandardMaterial({ map: turfTex, roughness: 0.8 }));
+        pitch.rotation.x = -Math.PI / 2;
+        pitch.receiveShadow = true;
         scene.add(pitch);
 
-        // Running Track Around Pitch (Red Surface)
-        const trackGeo = new THREE.RingGeometry(42, 62, 32);
-        trackGeo.rotateX(-Math.PI / 2);
-        const trackMat = new THREE.MeshBasicMaterial({ color: 0x993d3d, side: THREE.DoubleSide });
-        const track = new THREE.Mesh(trackGeo, trackMat);
-        track.position.set(0, 0.05, 0);
+        const track = new THREE.Mesh(new THREE.RingGeometry(48, 70, 48), new THREE.MeshStandardMaterial({ color: 0x9e3f3f, roughness: 0.7 }));
+        track.rotation.x = -Math.PI / 2;
+        track.position.y = 0.04;
+        track.receiveShadow = true;
         scene.add(track);
 
-        // Outer Ground Floor
-        const floorGeo = new THREE.PlaneGeometry(2000, 2000);
-        floorGeo.rotateX(-Math.PI / 2);
-        const floorMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.position.set(0, -0.1, 0);
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.9 }));
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -0.1;
+        floor.receiveShadow = true;
         scene.add(floor);
 
-        // Stadium Stands & Roof Trusses
         const obstacles = [];
-        const wallMat = new THREE.MeshBasicMaterial({ color: 0x555c66 });
-        const trussMat = new THREE.MeshBasicMaterial({ color: 0x22262d });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x555c66, roughness: 0.5 });
+        const trussMat = new THREE.MeshStandardMaterial({ color: 0x1f242b, metalness: 0.8, roughness: 0.2 });
 
         function createStadiumStand(x, z, rotY, w, d) {
             const standGroup = new THREE.Group();
-            
-            // Tiered seating block
-            const steps = 10;
+            const steps = 12;
             for(let i=0; i<steps; i++) {
-                const stepW = w;
-                const stepH = 2.0;
-                const stepD = d / steps;
-                const box = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepH, stepD), wallMat);
-                box.position.set(0, i * 1.5, (i - steps/2) * stepD);
+                const box = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d / steps), wallMat);
+                box.position.set(0, i * 1.6, (i - steps/2) * (d / steps));
+                box.castShadow = true; box.receiveShadow = true;
                 standGroup.add(box);
             }
-
-            // Roof Canopy Structure
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 10, 1.5, d + 15), trussMat);
-            roof.position.set(0, steps * 1.5 + 5, 0);
-            roof.rotation.x = 0.2;
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 12, 1.8, d + 18), trussMat);
+            roof.position.set(0, steps * 1.6 + 6, 0);
+            roof.rotation.x = 0.22;
+            roof.castShadow = true; roof.receiveShadow = true;
             standGroup.add(roof);
-
+            
             standGroup.position.set(x, 0, z);
             standGroup.rotation.y = rotY;
             scene.add(standGroup);
-
-            obstacles.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2, minY: 0, maxY: steps * 1.5 + 10 });
+            obstacles.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2, minY: 0, maxY: steps * 1.6 + 12 });
         }
-
-        createStadiumStand(0, -75, 0, 110, 45);   // North Stand
-        createStadiumStand(0, 75, Math.PI, 110, 45); // South Stand
-        createStadiumStand(-60, 0, Math.PI / 2, 110, 45); // West Stand
-        createStadiumStand(60, 0, -Math.PI / 2, 110, 45); // East Stand
+        createStadiumStand(0, -80, 0, 120, 50);
+        createStadiumStand(0, 80, Math.PI, 120, 50);
+        createStadiumStand(-65, 0, Math.PI / 2, 120, 50);
+        createStadiumStand(65, 0, -Math.PI / 2, 120, 50);
 
         // --- DRONE MODEL ---
         const droneGroup = new THREE.Group();
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x1c1e22 });
-        const orangeAccent = new THREE.MeshBasicMaterial({ color: 0xff6600 });
-        const propMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.3 });
+        const orangeAccent = new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.2 });
+        const propMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.1 });
 
         const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
+        fuselage.castShadow = true;
         droneGroup.add(fuselage);
 
         const propMeshes = [];
-        const ductPositions = [{ x: 0.95, z: 0.85 }, { x: -0.95, z: 0.85 }, { x: 0.95, z: -0.85 }, { x: -0.95, z: -0.85 }];
-
-        ductPositions.forEach(pos => {
-            const ductGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.4, 16, 1, true);
-            const duct = new THREE.Mesh(ductGeo, bodyMat);
+        [{ x: 0.95, z: 0.85 }, { x: -0.95, z: 0.85 }, { x: 0.95, z: -0.85 }, { x: -0.95, z: -0.85 }].forEach(pos => {
+            const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.4, 16, 1, true), bodyMat);
             duct.position.set(pos.x, 0, pos.z);
+            duct.castShadow = true;
             droneGroup.add(duct);
-
-            const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 6, 16);
-            const ring = new THREE.Mesh(ringGeo, orangeAccent);
-            ring.rotation.x = Math.PI / 2;
-            ring.position.set(pos.x, 0, pos.z);
-            droneGroup.add(ring);
-
             const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.18), propMat);
             prop.position.set(pos.x, 0, pos.z);
             droneGroup.add(prop);
             propMeshes.push(prop);
         });
-
         scene.add(droneGroup);
 
         const drone = {
-            position: new THREE.Vector3(0, 5, 40), 
+            position: new THREE.Vector3(0, 5, 45),
             velocity: new THREE.Vector3(0, 0, 0),
             rotation: new THREE.Quaternion(),
             euler: new THREE.Euler(0, 0, 0, 'YXZ')
         };
 
-        // --- FLIGHT MODES LOGIC ---
         const MODES = {
-            1: { code: "N", name: "NORMAL", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.45 },
-            2: { code: "S", name: "SPORT",  maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.75 },
-            3: { code: "M", name: "MANUAL", maxThrust: 25.5, drag: 0.020, hasAutoLevel: false },
-            4: { code: "A", name: "ACRO",   maxThrust: 25.5, drag: 0.008, hasAutoLevel: false }
+            1: { code: "N", formatText: "_N_", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.45 },
+            2: { code: "S", formatText: "_S_", maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.75 },
+            3: { code: "M", formatText: "_M_", maxThrust: 25.5, drag: 0.020, hasAutoLevel: false },
+            4: { code: "A", formatText: "_A_", maxThrust: 25.5, drag: 0.008, hasAutoLevel: false }
         };
-        let activeMode = 2; // Default to Sport Mode as requested
-        let cameraMode = "TPV"; // Third-person default
-
-        let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
-        let isSpawnedSafe = true; 
+        let activeMode = 3;
 
         let keys = { w: false, s: false, a: false, d: false };
         let mouseRoll = 0, mousePitch = 0;
-        let rawMouseX = 0, rawMouseY = 0;
-
-        let touchLeftValX = 0, touchLeftValY = 0;
-        let touchRightValX = 0, touchRightValY = 0;
-
-        const MOUSE_SENSITIVITY = 0.0025; 
-        const THROTTLE_SPEED = 4.0;
-        const YAW_RATE = 3.5;
-        const GRAVITY = 9.81;
-        const CAMERA_UPTILT = 0;
-
+        let touchLeftValX = 0, touchLeftValY = 0, touchRightValX = 0, touchRightValY = 0;
         let currentThrottle = 0;
 
-        function startGameSession() {
+        function launchSimulator() {
             initAudio();
             handleResize();
-            inst.style.display = 'none';
-            if (!isMobile) container.requestPointerLock();
-        }
-        container.addEventListener('click', startGameSession);
-        inst.addEventListener('click', startGameSession);
+            document.getElementById('home-menu').style.display = 'none';
 
-        document.addEventListener('pointerlockchange', () => { 
-            if (!isMobile) {
-                const isLocked = (document.pointerLockElement === container);
-                inst.style.display = isLocked ? 'none' : 'flex';
-                if (!isLocked) { rawMouseX = 0; rawMouseY = 0; }
+            if (selectedControlMode === 'desktop' && !isMobileDevice) {
+                container.requestPointerLock();
+                document.getElementById('touch-controls').style.display = 'none';
+            } else {
+                document.getElementById('touch-controls').style.display = 'block';
             }
-        });
-
-        function cycleFlightMode() {
-            activeMode = (activeMode % 4) + 1;
-            document.getElementById('flight-mode-badge').innerText = MODES[activeMode].code;
         }
 
-        document.getElementById('top-left-status').addEventListener('click', (e) => {
-            e.stopPropagation();
-            cycleFlightMode();
+        document.addEventListener('pointerlockchange', () => {
+            if (!isMobileDevice && selectedControlMode === 'desktop') {
+                const isLocked = (document.pointerLockElement === container);
+                if (!isLocked) document.getElementById('home-menu').style.display = 'flex';
+            }
         });
 
         document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'o') { openSettings(); return; }
             if (['1','2','3','4'].includes(e.key)) {
                 activeMode = parseInt(e.key);
-                document.getElementById('flight-mode-badge').innerText = MODES[activeMode].code;
+                document.getElementById('osd-mode-box').innerText = MODES[activeMode].code;
+                document.getElementById('osd-mode-format').innerText = MODES[activeMode].formatText;
                 return;
             }
-            if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true;
             if (key === 'r') resetDrone();
         });
         document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
         document.addEventListener('mousemove', (e) => {
-            if (isMobile || document.pointerLockElement !== container) return;
-            mouseRoll = e.movementX * MOUSE_SENSITIVITY;
-            mousePitch = -e.movementY * MOUSE_SENSITIVITY;
-            rawMouseX += e.movementX * 0.4;
-            rawMouseY += e.movementY * 0.4;
-            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
-            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
+            if (selectedControlMode === 'mobile' || document.pointerLockElement !== container) return;
+            mouseRoll = e.movementX * 0.0025;
+            mousePitch = -e.movementY * 0.0025;
         });
 
         function setupTouchJoystick(padId, knobId, callback) {
             const pad = document.getElementById(padId);
             const knob = document.getElementById(knobId);
-            const maxDist = 45;
             let activeTouchId = null;
-
             pad.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                if (activeTouchId === null) {
-                    const touch = e.changedTouches[0];
-                    activeTouchId = touch.identifier;
-                    updateStick(touch);
-                }
+                if (activeTouchId === null) { activeTouchId = e.changedTouches[0].identifier; updateStick(e.changedTouches[0]); }
             }, { passive: false });
-
             pad.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 for (let i = 0; i < e.changedTouches.length; i++) {
-                    const touch = e.changedTouches[i];
-                    if (touch.identifier === activeTouchId) updateStick(touch);
+                    if (e.changedTouches[i].identifier === activeTouchId) updateStick(e.changedTouches[i]);
                 }
             }, { passive: false });
-
-            function endTouch(e) {
+            const endTouch = (e) => {
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     if (e.changedTouches[i].identifier === activeTouchId) {
-                        activeTouchId = null;
-                        knob.style.transform = `translate(-50%, -50%)`;
-                        callback(0, 0);
+                        activeTouchId = null; knob.style.transform = `translate(-50%, -50%)`; callback(0, 0);
                     }
                 }
-            }
+            };
             pad.addEventListener('touchend', endTouch);
             pad.addEventListener('touchcancel', endTouch);
-
             function updateStick(touch) {
                 const rect = pad.getBoundingClientRect();
                 let dx = touch.clientX - (rect.left + rect.width / 2);
                 let dy = touch.clientY - (rect.top + rect.height / 2);
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+                if (dist > 42) { dx = (dx / dist) * 42; dy = (dy / dist) * 42; }
                 knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                callback(dx / maxDist, dy / maxDist);
+                callback(dx / 42, dy / 42);
             }
         }
 
-        if (isMobile) {
-            setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => { touchLeftValX = x; touchLeftValY = y; });
-            setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => { touchRightValX = x; touchRightValY = y; });
-        }
-
-        document.getElementById('btn-switch-view').addEventListener('click', (e) => {
-            e.stopPropagation();
-            cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
-        });
-        document.getElementById('btn-pause').addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isMobile) document.exitPointerLock();
-            inst.style.display = 'flex';
-        });
+        setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => { touchLeftValX = x; touchLeftValY = y; });
+        setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => { touchRightValX = x; touchRightValY = y; });
 
         function resetDrone() {
-            drone.position.set(0, 5, 40); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
-            currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0); isSpawnedSafe = true;
-        }
-
-        function handleCollisions() {
-            const px = drone.position.x, py = drone.position.y, pz = drone.position.z;
-            const buffer = 0.8;
-            for(let i = 0; i < obstacles.length; i++) {
-                const obs = obstacles[i];
-                if(px + buffer > obs.minX && px - buffer < obs.maxX && pz + buffer > obs.minZ && pz - buffer < obs.maxZ) {
-                    if(py + buffer > obs.minY && py - buffer < obs.maxY) {
-                        drone.position.y += 1.0;
-                        drone.velocity.set(0, 0, 0);
-                    }
-                }
-            }
+            drone.position.set(0, 5, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
+            currentThrottle = 0;
         }
 
         const clock = new THREE.Clock();
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
+            
+            frameCount++;
+            const now = clock.getElapsedTime();
+            if (now - lastFpsUpdate >= 0.5) {
+                const currentFps = Math.round(frameCount / (now - lastFpsUpdate));
+                document.getElementById('osd-fps').innerText = `${currentFps} FPS`;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+
             const modeCfg = MODES[activeMode];
             let inputYaw = 0;
+            let stickLeftX = 0, stickLeftY = 0, stickRightX = 0, stickRightY = 0;
 
-            if (isMobile) {
-                const targetThrottle = (-touchLeftValY + 1) / 2;
-                currentThrottle = targetThrottle;
-                inputYaw = touchLeftValX * YAW_RATE * dt;
+            if (selectedControlMode === 'mobile' || isMobileDevice) {
+                currentThrottle = (-touchLeftValY + 1) / 2;
+                inputYaw = touchLeftValX * 3.5 * dt;
+                stickLeftX = touchLeftValX; stickLeftY = touchLeftValY;
+
                 const targetPitch = -touchRightValY * modeCfg.maxAngle;
                 const targetRoll = touchRightValX * modeCfg.maxAngle;
+                stickRightX = touchRightValX; stickRightY = touchRightValY;
 
                 if (modeCfg.hasAutoLevel) {
                     drone.euler.y -= inputYaw;
@@ -558,15 +579,20 @@
                     drone.euler.z = targetRoll;
                     drone.rotation.setFromEuler(drone.euler);
                 } else {
-                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-touchRightValY * 2.0 * dt, -inputYaw, -touchRightValX * 2.0 * dt, 'YXZ'));
-                    drone.rotation.multiply(deltaRotation).normalize();
+                    drone.rotation.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-touchRightValY * 2.0 * dt, -inputYaw, -touchRightValX * 2.0 * dt, 'YXZ'))).normalize();
                 }
             } else {
                 if (document.pointerLockElement === container) {
-                    if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
-                    if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
-                    if (keys.a) inputYaw = -YAW_RATE * dt;
-                    if (keys.d) inputYaw = YAW_RATE * dt;
+                    if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + 4.0 * dt);
+                    if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - 4.0 * dt);
+                    if (keys.a) inputYaw = -3.5 * dt;
+                    if (keys.d) inputYaw = 3.5 * dt;
+
+                    stickLeftX = inputYaw !== 0 ? (inputYaw > 0 ? 0.8 : -0.8) : 0;
+                    stickLeftY = -(currentThrottle * 2 - 1);
+
+                    stickRightX = mouseRoll / 0.0025 / 15;
+                    stickRightY = -mousePitch / 0.0025 / 15;
 
                     if (modeCfg.hasAutoLevel) {
                         drone.euler.y -= inputYaw;
@@ -576,56 +602,41 @@
                         if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
                         drone.rotation.setFromEuler(drone.euler);
                     } else {
-                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'));
-                        drone.rotation.multiply(deltaRotation).normalize();
+                        drone.rotation.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'))).normalize();
                     }
                 }
             }
 
+            // Update RC Stick Overlay Gimbals
+            document.getElementById('dot-left').style.transform = `translate(${stickLeftX * 32}px, ${stickLeftY * 32}px)`;
+            document.getElementById('dot-right').style.transform = `translate(${stickRightX * 32}px, ${stickRightY * 32}px)`;
+
             updateAudioEngine(currentThrottle);
-            if (drone.position.y > 1.5) isSpawnedSafe = false;
 
             const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
             const thrust = localUp.multiplyScalar(currentThrottle * modeCfg.maxThrust);
-            const gravityForce = new THREE.Vector3(0, -GRAVITY, 0);
-
-            const accel = new THREE.Vector3().addVectors(thrust, gravityForce);
+            const accel = new THREE.Vector3().addVectors(thrust, new THREE.Vector3(0, -9.81, 0));
             drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
-            if (drone.position.y < 0.3) {
-                drone.position.y = 0.3;
-                drone.velocity.y = 0;
-            }
+            if (drone.position.y < 0.3) { drone.position.y = 0.3; drone.velocity.y = 0; }
 
-            handleCollisions();
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
-
             if (currentThrottle > 0.05) propMeshes.forEach(prop => { prop.rotation.y += 0.55; });
 
-            // Camera Setup: THIRD PERSON CHASE FROM BEHIND
-            if (cameraMode === "FPV") {
-                camera.position.copy(drone.position);
-                const camRot = drone.rotation.clone();
-                camRot.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), CAMERA_UPTILT));
-                camera.quaternion.copy(camRot);
-                droneGroup.visible = false;
-            } else {
-                droneGroup.visible = true;
-                const backOffset = new THREE.Vector3(0, 3.0, -8.5).applyQuaternion(drone.rotation);
-                camera.position.lerp(new THREE.Vector3().addVectors(drone.position, backOffset), 0.2);
-                camera.lookAt(drone.position);
-            }
+            camera.position.copy(drone.position);
+            camera.quaternion.copy(drone.rotation);
 
             mouseRoll = 0; mousePitch = 0;
 
-            // Update DJI Telemetry HUD
-            const speedVal = drone.velocity.length().toFixed(1);
+            const speedKmh = (drone.velocity.length() * 3.6).toFixed(1);
             const heightVal = drone.position.y.toFixed(1);
             const distVal = Math.sqrt(drone.position.x * drone.position.x + drone.position.z * drone.position.z).toFixed(1);
-            document.getElementById('tele-speed').innerHTML = `<span>S</span> ${speedVal}m/s`;
+
+            document.getElementById('tele-speed').innerHTML = `${speedKmh}km/h`;
+            document.getElementById('tele-speed2').innerHTML = `${speedKmh}km/h`;
             document.getElementById('tele-height').innerHTML = `<span>H</span> ${heightVal}m`;
             document.getElementById('tele-dist').innerHTML = `<span>D</span> ${distVal}m`;
 
