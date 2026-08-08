@@ -160,10 +160,10 @@
                 <h1>DJI Virtual Flight</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ Left Stick / W/S & A/D ]</b> : Throttle (Up/Down) & Yaw (Left/Right)<br>
-                    <b>[ Right Stick / Mouse ]</b> : Pitch (Forward/Back) & Roll (Left/Right)<br>
+                    <b>[ Left Stick / W/S & A/D ]</b> : Terbang Atas/Turun & Lihat Kanan/Kiri (Yaw)<br>
+                    <b>[ Right Stick / Mouse ]</b> : Maju/Mundur & Kanan/Kiri Move<br>
                     <b>[ R ]</b> : Reset Drone | <b>[ C ]</b> : Toggle FPV / TPV View<br><br>
-                    <span style="color: #00ffcc;">✓ Mode 2 Controls & DJI Avata Audio Active (FOV: 140°)</span>
+                    <span style="color: #00ffcc;">✓ Stable Horizon (0° Tilt) & Audio Active (FOV: 140°)</span>
                 </p>
             </div>
         </div>
@@ -178,14 +178,14 @@
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Altitude (Up/Down) & Yaw (Left/Right)<br>
-                <b>[ Right Joystick ]</b> : Move Forward/Back & Left/Right<br>
+                <b>[ Left Joystick ]</b> : Terbang Atas/Turun & Lihat Kanan/Kiri<br>
+                <b>[ Right Joystick ]</b> : Maju/Mundur & Kanan/Kiri Move<br>
                 <b>[ Top Menu 'MODE' ]</b> : Tap to Cycle Flight Mode<br><br>
-                <span style="color: #00ffcc;">✓ DJI Mode 2 Layout Active (FOV: 140°)</span>
+                <span style="color: #00ffcc;">✓ Stable Horizon (0° Tilt) & FOV: 140°</span>
             `;
         }
 
-        // Procedural Audio Engine (Web Audio API for realistic high-RPM ducted fan sound)
+        // Procedural Audio Engine
         let audioCtx = null;
         let motorOsc1 = null, motorOsc2 = null, motorGain = null, noiseNode = null, noiseGain = null, filterNode = null;
         let audioInitialized = false;
@@ -442,7 +442,7 @@
         createVelociGate(50, -170, Math.PI / 2);
         createVelociGate(0, -240, 0);
 
-        // DJI Avata 1 Drone Shape Construction
+        // Drone Construction
         const droneGroup = new THREE.Group();
         const bodyMat = new THREE.MeshBasicMaterial({ color: 0x222225 });
         const guardMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1c });
@@ -478,34 +478,32 @@
             position: new THREE.Vector3(0, 0.3, 45), 
             velocity: new THREE.Vector3(0, 0, 0),
             rotation: new THREE.Quaternion(),
-            euler: new THREE.Euler(0, 0, 0, 'YXZ')
+            yaw: 0 // Absolute flat horizontal heading angle
         };
 
         const MODES = {
-            1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, maxAngle: 0.5 },
-            2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, maxAngle: 0.8 },
-            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, maxAngle: 1.1 },
-            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, maxAngle: 1.3 }
+            1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, maxSpeed: 18.0 },
+            2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, maxSpeed: 28.0 },
+            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, maxSpeed: 38.0 },
+            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, maxSpeed: 45.0 }
         };
         let activeMode = 1;
-        let cameraMode = "TPV"; // default to third person view from behind
+        let cameraMode = "TPV";
 
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let isSpawnedSafe = true; 
 
-        let keys = { w: false, s: false, a: false, d: false, up: false, down: false, left: false, right: false };
-        let mouseRoll = 0, mousePitch = 0;
+        let keys = { w: false, s: false, a: false, d: false };
+        let mouseXMove = 0, mouseYMove = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
         let touchLeftValX = 0, touchLeftValY = 0;
         let touchRightValX = 0, touchRightValY = 0;
 
-        const MOUSE_SENSITIVITY = 0.0025; 
-        const YAW_RATE = 3.2;
+        const MOUSE_SENSITIVITY = 0.003; 
+        const YAW_RATE = 2.8;
         const GRAVITY = 9.81;
-        const CAMERA_UPTILT = 28 * (Math.PI / 180);
-
-        let verticalVelocity = 0;
+        const CAMERA_UPTILT = 0; // Camera tilt set to 0 degrees flat horizon
 
         function startGameSession() {
             initAudio();
@@ -550,8 +548,8 @@
 
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
-            mouseRoll = e.movementX * MOUSE_SENSITIVITY;
-            mousePitch = -e.movementY * MOUSE_SENSITIVITY;
+            mouseXMove = e.movementX * MOUSE_SENSITIVITY;
+            mouseYMove = -e.movementY * MOUSE_SENSITIVITY;
             
             rawMouseX += e.movementX * 0.4;
             rawMouseY += e.movementY * 0.4;
@@ -629,12 +627,12 @@
 
         if (isMobile) {
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
-                touchLeftValX = x;  // Yaw: left / right
-                touchLeftValY = y;  // Throttle: up / down (-y is up)
+                touchLeftValX = x;  // Yaw: lihat kanan/kiri
+                touchLeftValY = y;  // Throttle: terbang atas/turun (-y adalah atas)
             });
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
-                touchRightValX = x; // Roll / Move sideways: left / right
-                touchRightValY = y; // Pitch / Move forward / backward: forward / back (-y is forward)
+                touchRightValX = x; // Kanan/kiri move
+                touchRightValY = y; // Maju/mundur (-y adalah maju)
             });
         }
 
@@ -653,9 +651,13 @@
         });
 
         function resetDrone() {
-            drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
-            tumbleRotationVelocity.set(0, 0, 0); verticalVelocity = 0;
-            isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
+            drone.position.set(0, 0.3, 45); 
+            drone.velocity.set(0, 0, 0); 
+            drone.yaw = 0;
+            drone.rotation.set(0, 0, 0);
+            tumbleRotationVelocity.set(0, 0, 0); 
+            isSpawnedSafe = true; 
+            rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
             handleResize();
         }
@@ -681,11 +683,10 @@
                         }
 
                         if (speedH > 4.5) {
-                            tumbleRotationVelocity.set((Math.random() - 0.5) * 60.0, (Math.random() - 0.5) * 40.0, (Math.random() - 0.5) * 60.0);
-                            drone.velocity.y = speedH * 0.45 + 2.5; 
+                            tumbleRotationVelocity.set((Math.random() - 0.5) * 40.0, (Math.random() - 0.5) * 30.0, (Math.random() - 0.5) * 40.0);
+                            drone.velocity.y = speedH * 0.35 + 2.0; 
                         } else {
-                            drone.velocity.y = 2.8; 
-                            tumbleRotationVelocity.set((Math.random()-0.5)*9, (Math.random()-0.5)*9, (Math.random()-0.5)*9);
+                            drone.velocity.y = 2.2; 
                         }
                     }
                 }
@@ -699,37 +700,31 @@
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
-            let throttleInput = 0; // Stick Left Up/Down
-            let yawInput = 0;      // Stick Left Left/Right
-            let pitchInput = 0;    // Stick Right Forward/Back (maju mundur)
-            let rollInput = 0;     // Stick Right Left/Right (kanan kiri move)
+            let throttleInput = 0; // Stick Left Up/Down (Terbang atas / turun)
+            let yawInput = 0;      // Stick Left Left/Right (Lihat kanan / kiri)
+            let pitchInput = 0;    // Stick Right Forward/Back (Maju / mundur)
+            let rollInput = 0;     // Stick Right Left/Right (Kanan / kiri move)
 
             if (isMobile) {
-                throttleInput = -touchLeftValY; // up is positive throttle, down is negative
+                throttleInput = -touchLeftValY; 
                 yawInput = touchLeftValX * YAW_RATE * dt;
-                pitchInput = -touchRightValY;   // forward / backward move
-                rollInput = touchRightValX;     // sideways move
+                pitchInput = -touchRightValY;   
+                rollInput = touchRightValX;     
             } else {
-                if (keys.w) throttleInput = 1.0;  // Up
-                if (keys.s) throttleInput = -1.0; // Down
-                if (keys.a) yawInput = -YAW_RATE * dt; // Turn left
-                if (keys.d) yawInput = YAW_RATE * dt;  // Turn right
+                if (keys.w) throttleInput = 1.0;  // Atas
+                if (keys.s) throttleInput = -1.0; // Turun
+                if (keys.a) yawInput = -YAW_RATE * dt; // Lihat Kiri
+                if (keys.d) yawInput = YAW_RATE * dt;  // Lihat Kanan
 
-                // Mouse / keyboard fallback for Right Stick (maju mundur, kanan kiri move)
                 if (document.pointerLockElement === container) {
-                    pitchInput = -mousePitch * 15.0; // Mouse forward/back
-                    rollInput = mouseRoll * 15.0;    // Mouse left/right
+                    pitchInput = -mouseYMove * 10.0; // Maju Mundur (Mouse Y)
+                    rollInput = mouseXMove * 10.0;   // Kanan Kiri Move (Mouse X)
                 }
             }
 
-            // Apply Mode 2 Orientation Controls
-            drone.euler.y -= yawInput;
-            const targetPitch = pitchInput * modeCfg.maxAngle;
-            const targetRoll = rollInput * modeCfg.maxAngle;
-
-            drone.euler.x = THREE.MathUtils.lerp(drone.euler.x, targetPitch, 12.0 * dt);
-            drone.euler.z = THREE.MathUtils.lerp(drone.euler.z, targetRoll, 12.0 * dt);
-            drone.rotation.setFromEuler(drone.euler);
+            // Update Yaw (Lihat Kanan / Kiri)
+            drone.yaw -= yawInput;
+            drone.rotation.set(0, drone.yaw, 0, 'YXZ');
 
             if (drone.position.y > 1.5) { isSpawnedSafe = false; }
 
@@ -738,22 +733,32 @@
                     new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ')
                 );
                 drone.rotation.multiply(tumbleQuaternion).normalize();
-                tumbleRotationVelocity.multiplyScalar(Math.exp(-2.4 * dt)); 
+                tumbleRotationVelocity.multiplyScalar(Math.exp(-3.0 * dt)); 
             }
 
-            const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(drone.rotation);
-            const rightDir = new THREE.Vector3(1, 0, 0).applyQuaternion(drone.rotation);
+            // Direction vectors based purely on flat yaw heading (No pitch/roll tilt animation to prevent dizziness)
+            const forwardDir = new THREE.Vector3(Math.sin(drone.yaw), 0, Math.cos(drone.yaw));
+            const rightDir = new THREE.Vector3(Math.cos(drone.yaw), 0, -Math.sin(drone.yaw));
 
-            // Stick Left vertical controls altitude/throttle (terbang atas/turun)
-            const liftForce = (throttleInput * modeCfg.maxThrust) + (GRAVITY * 1.02); 
+            // Lift force (Terbang atas / turun)
+            const liftForce = (throttleInput * modeCfg.maxThrust) + (GRAVITY * 1.0); 
             
-            // Stick Right controls directional movement (maju mundur, kanan kiri)
-            const moveForceForward = forwardDir.multiplyScalar(pitchInput * modeCfg.maxThrust * 0.7);
-            const moveForceSide = rightDir.multiplyScalar(rollInput * modeCfg.maxThrust * 0.7);
+            // Movement force (Maju mundur, kanan kiri)
+            const moveForceForward = forwardDir.multiplyScalar(pitchInput * modeCfg.maxThrust * 0.85);
+            const moveForceSide = rightDir.multiplyScalar(rollInput * modeCfg.maxThrust * 0.85);
 
             const accel = new THREE.Vector3(0, liftForce - GRAVITY, 0).add(moveForceForward).add(moveForceSide);
             drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
             drone.velocity.addScaledVector(accel, dt);
+            
+            // Speed clamp
+            let horizontalVel = new THREE.Vector3(drone.velocity.x, 0, drone.velocity.z);
+            if (horizontalVel.length() > modeCfg.maxSpeed) {
+                horizontalVel.normalize().multiplyScalar(modeCfg.maxSpeed);
+                drone.velocity.x = horizontalVel.x;
+                drone.velocity.z = horizontalVel.z;
+            }
+
             drone.position.addScaledVector(drone.velocity, dt);
 
             const currentSpeed = drone.velocity.length();
@@ -763,15 +768,12 @@
             if (drone.position.y < 0.3) {
                 drone.position.y = 0.3; 
                 if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
-                    tumbleRotationVelocity.set((Math.random()-0.5)*45, (Math.random()-0.5)*25, (Math.random()-0.5)*45);
-                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.38 + 1.2;
-                } else if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 0.5) {
-                    drone.velocity.y = 1.8;
-                    tumbleRotationVelocity.set((Math.random()-0.5)*6, (Math.random()-0.5)*6, (Math.random()-0.5)*6);
+                    tumbleRotationVelocity.set((Math.random()-0.5)*30, (Math.random()-0.5)*20, (Math.random()-0.5)*30);
+                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.3 + 1.0;
                 } else {
                     drone.velocity.y = 0;
                 }
-                drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
+                drone.velocity.x *= 0.6; drone.velocity.z *= 0.6;
             }
 
             handleCollisions();
@@ -788,9 +790,7 @@
 
             if (cameraMode === "FPV") {
                 camera.position.copy(drone.position);
-                const camRot = drone.rotation.clone();
-                camRot.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), CAMERA_UPTILT));
-                camera.quaternion.copy(camRot);
+                camera.quaternion.copy(drone.rotation); // Camera tilt = 0 (Flat horizon)
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
@@ -799,7 +799,7 @@
                 camera.lookAt(drone.position);
             }
 
-            mouseRoll = 0; mousePitch = 0;
+            mouseXMove = 0; mouseYMove = 0;
 
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
