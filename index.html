@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DJI Avata 1 Sport & Manual Flight</title>
+    <title>FPV PC Simulator - DJI Avata Style</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #87ceeb; font-family: monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         canvas { width: 100%; height: 100%; display: block; }
         
+        /* OSD Canvas Overlay (Chroma Key & Noise Reduction Processor) */
         #osd-overlay-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none;
             image-rendering: pixelated;
         }
 
+        /* RC Stick Controller Overlay (PC) */
         #rc-sticks-container {
             position: absolute;
             bottom: 75px;
@@ -35,30 +37,58 @@
             position: relative;
             box-shadow: 0 5px 12px rgba(0,0,0,0.33);
         }
-        .stick-cross-h { position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3); }
-        .stick-cross-v { position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3); }
+        .stick-cross-h {
+            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
+        }
+        .stick-cross-v {
+            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
+        }
         .stick-ball {
             position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
             box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
         }
 
+        /* Touch Joysticks Overlay (Mobile Only) */
         #touch-controls {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 9; pointer-events: none; display: none;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9;
+            pointer-events: none;
+            display: none;
         }
         .touch-pad {
-            position: absolute; bottom: env(safe-area-inset-bottom, 30px); width: 140px; height: 140px;
-            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 50%;
-            pointer-events: auto; touch-action: none;
+            position: absolute;
+            bottom: env(safe-area-inset-bottom, 30px);
+            width: 140px;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            pointer-events: auto;
+            touch-action: none;
         }
         #touch-left-pad { left: 20px; bottom: 20px; }
         #touch-right-pad { right: 20px; bottom: 20px; }
+        
         .touch-knob {
-            position: absolute; top: 50%; left: 50%; width: 54px; height: 54px;
-            background: rgba(255, 255, 255, 0.6); border: 2px solid #ffffff; border-radius: 50%;
-            transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 54px;
+            height: 54px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
+        /* Top Action Bar */
         #top-action-bar {
             position: absolute; top: max(15px, env(safe-area-inset-top)); right: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto;
         }
@@ -70,34 +100,29 @@
         .top-btn:hover { background: rgba(40, 50, 70, 0.8); }
         .btn-icon { background: #ffffff; color: #111; font-size: 11px; font-weight: bold; padding: 1px 5px; border-radius: 4px; }
 
+        /* Top Menu Bar */
         #top-menu-bar { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
         #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        
         #mobile-mode-btn {
             color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             display: none; font-weight: bold;
         }
 
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.35); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
+        /* MAIN MENU SCREEN */
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 10; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
         p { line-height: 1.6; font-size: 14px; color: #eee; }
-        #fallback-warning {
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; color: #ff4444; z-index: 99;
-            flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; font-family: monospace;
-        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="fallback-warning">
-        <h2>WebGL Initialization Failed</h2>
-        <p style="color: #ccc; margin-top: 10px;">Your browser or hardware acceleration does not support WebGL. Please enable hardware acceleration in your browser settings or use a modern GPU-enabled browser.</p>
-    </div>
-
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">DJI Avata &bull; S-Mode</div>
-            <div id="mobile-mode-btn">MODE: S (SPORT)</div>
+            <div id="menu-dot-esc">NO &bull; 6/5</div>
+            <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
         <div id="top-action-bar">
@@ -106,8 +131,10 @@
             <button class="top-btn" id="btn-pause">Pause <span class="btn-icon" id="pause-icon">ESC</span></button>
         </div>
 
+        <!-- Canvas untuk OSD Image Overlay -->
         <canvas id="osd-overlay-canvas"></canvas>
 
+        <!-- RC Sticks Overlay (PC) -->
         <div id="rc-sticks-container">
             <div class="stick-box">
                 <div class="stick-cross-h"></div>
@@ -121,6 +148,7 @@
             </div>
         </div>
 
+        <!-- Touch Controls (Mobile) -->
         <div id="touch-controls">
             <div id="touch-left-pad" class="touch-pad">
                 <div id="touch-left-knob" class="touch-knob"></div>
@@ -132,20 +160,18 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Avata 1 Flight Sim</h1>
+                <h1>DJI Avata Simulator</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>Avata Sport (S) Mode & Manual Acro</b><br>
-                    <b>[ W/S & A/D ]</b> : Throttle Up/Down & Yaw Turn<br>
-                    <b>[ Mouse / Right Stick ]</b> : Avata Bank-to-Turn (Roll & Pitch)<br>
-                    <b>[ 1: N-Mode | 2: S-Mode (Avata 1) | 3: M-Mode Acro ]</b><br><br>
-                    <span style="color: #00ffcc;">✓ Authentic Avata 1 S-Mode Banking Mechanics</span>
+                    <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
+                    <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
+                    <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
+                    <span style="color: #00ffcc;">✓ DJI Avata 1 Ducted Body & Soft Engine Sound (15% Vol) Active</span>
                 </p>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -154,56 +180,41 @@
             document.getElementById('mobile-mode-btn').style.display = 'block';
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
-                <b>[ TAP TO START AVATA SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Altitude & Yaw Turn<br>
-                <b>[ Right Joystick ]</b> : Avata Bank & Pitch Control<br>
-                <b>[ Top Menu 'MODE' ]</b> : Cycle N / S / M Modes<br><br>
-                <span style="color: #00ffcc;">✓ DJI Avata 1 Sport Mode Physics Active</span>
+                <b>[ TAP TO START SIMULATOR ]</b><br><br>
+                <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
+                <b>[ Right Joystick ]</b> : Pitch & Roll<br>
+                <b>[ Top Menu 'MODE' ]</b> : Tap to Cycle Flight Mode<br><br>
+                <span style="color: #00ffcc;">✓ DJI Avata 1 Touch & Soft Engine Sound (15% Vol) Active</span>
             `;
         }
 
-        // Check WebGL availability safely
-        function isWebGLAvailable() {
-            try {
-                const canvas = document.createElement('canvas');
-                return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
-            } catch (e) {
-                return false;
-            }
-        }
-
-        if (!isWebGLAvailable()) {
-            document.getElementById('fallback-warning').style.display = 'flex';
-            throw new Error("WebGL not supported");
-        }
-
-        // Procedural Audio Engine
+        // --- WEB AUDIO API MOTOR / DUCT SOUND ENGINE ---
         let audioCtx = null;
-        let motorOsc1 = null, motorOsc2 = null, motorGain = null, noiseNode = null, noiseGain = null, filterNode = null;
-        let audioInitialized = false;
+        let motorOsc = null;
+        let motorGain = null;
+        let noiseNode = null;
+        let noiseGain = null;
+        let isAudioInitialized = false;
 
         function initAudio() {
-            if (audioInitialized) return;
+            if (isAudioInitialized) return;
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
             audioCtx = new AudioContext();
 
-            motorOsc1 = audioCtx.createOscillator();
-            motorOsc1.type = 'sawtooth';
-            motorOsc1.frequency.setValueAtTime(75, audioCtx.currentTime);
-
-            motorOsc2 = audioCtx.createOscillator();
-            motorOsc2.type = 'triangle';
-            motorOsc2.frequency.setValueAtTime(150, audioCtx.currentTime);
+            // Low frequency tone for ducted motor hum
+            motorOsc = audioCtx.createOscillator();
+            motorOsc.type = 'sawtooth';
+            motorOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
 
             motorGain = audioCtx.createGain();
-            motorGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+            motorGain.gain.setValueAtTime(0.0, audioCtx.currentTime); // Start muted
 
-            filterNode = audioCtx.createBiquadFilter();
-            filterNode.type = 'bandpass';
-            filterNode.frequency.setValueAtTime(350, audioCtx.currentTime);
-            filterNode.Q.setValueAtTime(3.0, audioCtx.currentTime);
+            motorOsc.connect(motorGain);
+            motorGain.connect(audioCtx.destination);
+            motorOsc.start();
 
+            // Filtered white noise for high velocity propeller air shear
             const bufferSize = 2 * audioCtx.sampleRate;
             const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = noiseBuffer.getChannelData(0);
@@ -215,39 +226,33 @@
             noiseNode.buffer = noiseBuffer;
             noiseNode.loop = true;
 
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+            filter.Q.setValueAtTime(1.0, audioCtx.currentTime);
+
             noiseGain = audioCtx.createGain();
             noiseGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
 
-            motorOsc1.connect(motorGain);
-            motorOsc2.connect(motorGain);
-            motorGain.connect(filterNode);
-            filterNode.connect(audioCtx.destination);
-
-            noiseNode.connect(noiseGain);
+            noiseNode.connect(filter);
+            filter.connect(noiseGain);
             noiseGain.connect(audioCtx.destination);
-
-            motorOsc1.start();
-            motorOsc2.start();
             noiseNode.start();
 
-            audioInitialized = true;
+            isAudioInitialized = true;
         }
 
-        function updateAudioEngine(throttleAmount, speed) {
-            if (!audioInitialized || !audioCtx) return;
+        function updateAudioEngine(throttle) {
+            if (!isAudioInitialized || !audioCtx) return;
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
+            // Mapped to 15% max volume range (quiet background sound)
+            const baseGain = 0.015 + throttle * 0.12; 
+            motorGain.gain.setTargetAtTime(baseGain, audioCtx.currentTime, 0.05);
+            motorOsc.frequency.setTargetAtTime(55 + throttle * 130, audioCtx.currentTime, 0.05);
 
-            const baseFreq = 70 + throttleAmount * 240 + speed * 4.0;
-            motorOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
-            motorOsc2.frequency.setTargetAtTime(baseFreq * 2.0, audioCtx.currentTime, 0.05);
-
-            const targetGain = 0.05 + throttleAmount * 0.18 + Math.min(speed * 0.005, 0.1);
-            motorGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.05);
-
-            filterNode.frequency.setTargetAtTime(300 + speed * 20.0, audioCtx.currentTime, 0.05);
-            noiseGain.gain.setTargetAtTime(0.02 + Math.min(speed * 0.004, 0.08), audioCtx.currentTime, 0.05);
+            noiseGain.gain.setTargetAtTime(throttle * 0.06, audioCtx.currentTime, 0.05);
         }
 
         const osdCanvas = document.getElementById('osd-overlay-canvas');
@@ -290,6 +295,24 @@
                     }
                 }
             }
+
+            const tempData = new Uint8ClampedArray(data);
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let idx = (y * width + x) * 4;
+                    if (data[idx + 3] === 0) {
+                        let solidNeighbors = 0;
+                        if (tempData[((y-1) * width + x) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[((y+1) * width + x) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[(y * width + (x-1)) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[(y * width + (x+1)) * 4 + 3] > 128) solidNeighbors++;
+                        if (solidNeighbors === 0) {
+                            data[idx + 3] = 0;
+                        }
+                    }
+                }
+            }
+
             oCtx.putImageData(imgData, 0, 0);
         }
 
@@ -299,10 +322,10 @@
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.FogExp2(0xa1d5ff, 0.0015);
+        scene.background = new THREE.Color(0xa4caff);
+        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        const camera = new THREE.PerspectiveCamera(135, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -319,43 +342,66 @@
         }
 
         window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', () => { setTimeout(handleResize, 300); });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleResize, 300);
+        });
+
         setTimeout(handleResize, 100);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.7);
-        skyLight.position.set(150, 350, 100);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.6);
+        skyLight.position.set(100, 300, 50);
         scene.add(skyLight);
 
-        // Environment terrain
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
         const ctxFloor = floorCanvas.getContext('2d');
-        ctxFloor.fillStyle = '#3b6e32'; ctxFloor.fillRect(0, 0, 256, 256);
-        for(let i=0; i<900; i++) {
-            ctxFloor.fillStyle = i % 2 === 0 ? '#467d3c' : '#325d2a';
+        ctxFloor.fillStyle = '#4d7c3d'; ctxFloor.fillRect(0, 0, 256, 256);
+        for(let i=0; i<800; i++) {
+            ctxFloor.fillStyle = i % 2 === 0 ? '#568a44' : '#457037';
             ctxFloor.fillRect(Math.random()*256, Math.random()*256, 3, 3);
         }
         const floorTex = new THREE.CanvasTexture(floorCanvas);
         floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping;
-        floorTex.repeat.set(200, 200);
+        floorTex.repeat.set(180, 180);
 
-        const floorGeo = new THREE.PlaneGeometry(6000, 6000);
+        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
         floorGeo.rotateX(-Math.PI / 2);
         const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
 
-        // Obstacles & Avata Canyons / Gates
+        const cloudGroup = new THREE.Group();
+        const cloudCanvas = document.createElement('canvas');
+        cloudCanvas.width = 128; cloudCanvas.height = 128;
+        const ctxCloud = cloudCanvas.getContext('2d');
+        let grad = ctxCloud.createRadialGradient(64,64,10, 64,64,55);
+        grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+        grad.addColorStop(0.4, 'rgba(240,245,255,0.6)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctxCloud.fillStyle = grad; ctxCloud.fillRect(0,0,128,128);
+        const cloudTex = new THREE.CanvasTexture(cloudCanvas);
+
+        const cloudSpriteMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.6 });
+        for(let c=0; c<45; c++) {
+            const sprite = new THREE.Sprite(cloudSpriteMat);
+            sprite.position.set((Math.random()-0.5)*1200, 180 + Math.random()*70, (Math.random()-0.5)*1200);
+            sprite.scale.set(120 + Math.random()*100, 50 + Math.random()*40, 1);
+            cloudGroup.add(sprite);
+        }
+        scene.add(cloudGroup);
+
         const obstacles = [];
         const blockCanvas = document.createElement('canvas');
         blockCanvas.width = 64; blockCanvas.height = 64;
         const ctxBlock = blockCanvas.getContext('2d');
-        ctxBlock.fillStyle = '#5c6573'; ctxBlock.fillRect(0,0,64,64);
+        ctxBlock.fillStyle = '#6e7a8a'; ctxBlock.fillRect(0,0,64,64);
+        ctxBlock.fillStyle = '#7a8899'; ctxBlock.fillRect(2,2,60,60);
         const blockTex = new THREE.CanvasTexture(blockCanvas);
         blockTex.wrapS = THREE.RepeatWrapping; blockTex.wrapT = THREE.RepeatWrapping;
-        blockTex.repeat.set(2, 10);
+        blockTex.repeat.set(2, 8);
+
         const wallMat = new THREE.MeshBasicMaterial({ map: blockTex });
-        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff1144 });
 
         function createTrackTower(x, z, width, height, depth) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
@@ -364,87 +410,133 @@
             obstacles.push({ minX: x - width/2, maxX: x + width/2, minZ: z - depth/2, maxZ: z + depth/2, minY: 0, maxY: height });
         }
 
-        function createGate(x, z, rotY) {
-            const gateGroup = new THREE.Group(); const gateW = 14, gateH = 10, thick = 0.8;
+        function createVelociGate(x, z, rotY) {
+            const gateGroup = new THREE.Group(); const gateW = 15, gateH = 11, thick = 0.7;
             const top = new THREE.Mesh(new THREE.BoxGeometry(gateW, thick, thick), gateMat); top.position.y = gateH;
             const left = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); left.position.set(-gateW/2, gateH/2, 0);
             const right = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); right.position.set(gateW/2, gateH/2, 0);
             gateGroup.add(top, left, right); gateGroup.position.set(x, 0, z); gateGroup.rotation.y = rotY; scene.add(gateGroup);
-            obstacles.push({ minX: x - gateW/2, maxX: x + gateW/2, minZ: z - 1, maxZ: z + 1, minY: gateH - 0.5, maxY: gateH + 0.5 });
+
+            const isRotated = Math.abs(rotY) > 0.1; const sizeX = isRotated ? thick : gateW; const sizeZ = isRotated ? gateW : thick;
+            const lx = x + (isRotated ? 0 : -gateW/2); const lz = z + (isRotated ? -gateW/2 : 0);
+            obstacles.push({ minX: lx - 0.5, maxX: lx + 0.5, minZ: lz - 0.5, maxZ: lz + 0.5, minY: 0, maxY: gateH });
+            const rx = x + (isRotated ? 0 : gateW/2); const rz = z + (isRotated ? gateW/2 : 0);
+            obstacles.push({ minX: rx - 0.5, maxX: rx + 0.5, minZ: rz - 0.5, maxZ: rz + 0.5, minY: 0, maxY: gateH });
+            obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.4, maxY: gateH + 0.4 });
         }
 
-        createTrackTower(-50, -80, 28, 80, 28);
-        createTrackTower(60, -140, 32, 100, 32);
-        createGate(0, -30, 0);
-        createGate(-40, -90, Math.PI / 4);
-        createGate(40, -160, -Math.PI / 4);
-        createGate(0, -220, 0);
+        createTrackTower(-60, -100, 30, 70, 30);
+        createTrackTower(70, -120, 35, 90, 35);
+        createTrackTower(-90, 20, 25, 55, 25);
+        createTrackTower(80, 40, 30, 65, 30);
 
-        // DJI Avata 1 Ducted Model
+        createVelociGate(0, -20, 0);
+        createVelociGate(-35, -60, Math.PI / 4);
+        createVelociGate(35, -60, -Math.PI / 4);
+        createVelociGate(0, -120, 0);
+        createVelociGate(-50, -170, Math.PI / 2);
+        createVelociGate(50, -170, Math.PI / 2);
+        createVelociGate(0, -240, 0);
+
+        // --- DJI AVATA 1 3D MODEL CONSTRUCTION ---
         const droneGroup = new THREE.Group();
-        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x18181a });
-        const ductMat = new THREE.MeshBasicMaterial({ color: 0x222225 });
+        
+        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x1c1e22 });
+        const accentMat = new THREE.MeshBasicMaterial({ color: 0x2e323b });
+        const orangeAccent = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+        const glassLensMat = new THREE.MeshBasicMaterial({ color: 0x112244 });
 
-        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 1.8), bodyMat);
-        fuselage.position.y = 0.05;
+        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
+        fuselage.position.set(0, 0, 0);
         droneGroup.add(fuselage);
 
-        const camPod = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), new THREE.MeshBasicMaterial({ color: 0x050505 }));
-        camPod.position.set(0, -0.05, 0.95);
-        droneGroup.add(camPod);
+        const ductMaterial = new THREE.MeshBasicMaterial({ color: 0x22252b, side: THREE.DoubleSide });
+        const propMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
 
-        const ringGeo = new THREE.CylinderGeometry(0.9, 0.9, 0.45, 24, 1, true);
-        const bladeMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
         const propMeshes = [];
-        const ductedOffsets = [{x: 1.05, z: 0.8}, {x: -1.05, z: 0.8}, {x: 1.05, z: -0.8}, {x: -1.05, z: -0.8}];
+        const ductPositions = [
+            { x: 0.95, z: 0.85 },   
+            { x: -0.95, z: 0.85 },  
+            { x: 0.95, z: -0.85 },  
+            { x: -0.95, z: -0.85 }   
+        ];
 
-        ductedOffsets.forEach(pos => {
-            const ring = new THREE.Mesh(ringGeo, ductMat);
-            ring.position.set(pos.x, 0.1, pos.z);
+        ductPositions.forEach(pos => {
+            const ductGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.4, 24, 1, true);
+            const duct = new THREE.Mesh(ductGeo, ductMaterial);
+            duct.position.set(pos.x, 0, pos.z);
+            droneGroup.add(duct);
+
+            const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 8, 24);
+            const ring = new THREE.Mesh(ringGeo, orangeAccent);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.set(pos.x, 0, pos.z);
             droneGroup.add(ring);
-            const blade = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.03, 0.15), bladeMat);
-            blade.position.set(pos.x, 0.1, pos.z);
-            droneGroup.add(blade);
-            propMeshes.push(blade);
+
+            const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.18), propMat);
+            prop.position.set(pos.x, 0, pos.z);
+            droneGroup.add(prop);
+            propMeshes.push(prop);
         });
+
+        const gimbalHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), accentMat);
+        gimbalHousing.position.set(0, -0.05, 0.95);
+        droneGroup.add(gimbalHousing);
+
+        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16), glassLensMat);
+        cameraLens.rotation.x = Math.PI / 2;
+        cameraLens.position.set(0, -0.05, 1.2);
+        droneGroup.add(cameraLens);
+
         scene.add(droneGroup);
 
         const drone = {
-            position: new THREE.Vector3(0, 0.3, 40),
+            position: new THREE.Vector3(0, 0.3, 45), 
             velocity: new THREE.Vector3(0, 0, 0),
-            rotation: new THREE.Euler(0, 0, 0, 'YXZ'),
-            yaw: 0,
-            pitch: 0,
-            roll: 0
+            rotation: new THREE.Quaternion(),
+            euler: new THREE.Euler(0, 0, 0, 'YXZ')
         };
 
-        // DJI Flight Modes: 1 = N (Normal), 2 = S (Sport - Avata 1 Bank-to-Turn), 3 = M (Manual Acro)
         const MODES = {
-            1: { name: "NORMAL (N)", maxSpeed: 14.0, agility: 1.0 },
-            2: { name: "SPORT (S - Avata 1)", maxSpeed: 27.0, agility: 2.2 },
-            3: { name: "MANUAL (M)", maxSpeed: 38.0, agility: 4.5 }
+            1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.5 },
+            2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.8 },
+            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, hasAutoLevel: false },
+            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
         };
-        let activeMode = 2; // Default to Sport Mode like Avata 1
+        let activeMode = 1;
         let cameraMode = "FPV";
 
+        let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
+        let isSpawnedSafe = true; 
+
         let keys = { w: false, s: false, a: false, d: false };
-        let mouseXMove = 0, mouseYMove = 0;
+        let mouseRoll = 0, mousePitch = 0;
         let rawMouseX = 0, rawMouseY = 0;
+
         let touchLeftValX = 0, touchLeftValY = 0;
         let touchRightValX = 0, touchRightValY = 0;
 
-        const MOUSE_SENSITIVITY = 0.0035;
+        const MOUSE_SENSITIVITY = 0.0025; 
+        const THROTTLE_SPEED = 4.0;
+        const YAW_RATE = 3.5;
+        const GRAVITY = 9.81;
+        
+        const CAMERA_UPTILT = 0 * (Math.PI / 180);
+
+        let currentThrottle = 0;
 
         function startGameSession() {
             initAudio();
             handleResize();
             inst.style.display = 'none';
-            if (!isMobile) { container.requestPointerLock(); }
+            if (!isMobile) {
+                container.requestPointerLock();
+            }
         }
         container.addEventListener('click', startGameSession);
         inst.addEventListener('click', startGameSession);
 
-        document.addEventListener('pointerlockchange', () => {
+        document.addEventListener('pointerlockchange', () => { 
             if (!isMobile) {
                 const isLocked = (document.pointerLockElement === container);
                 inst.style.display = isLocked ? 'none' : 'flex';
@@ -453,45 +545,38 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (['1','2','3'].includes(e.key)) {
+            if (['1','2','3','4'].includes(e.key)) {
                 activeMode = parseInt(e.key);
                 updateMobileModeButtonText();
                 return;
             }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             const key = e.key.toLowerCase();
-            if (key === 'w' || e.key === 'ArrowUp') keys.w = true;
-            if (key === 's' || e.key === 'ArrowDown') keys.s = true;
-            if (key === 'a' || e.key === 'ArrowLeft') keys.a = true;
-            if (key === 'd' || e.key === 'ArrowRight') keys.d = true;
+            if (key in keys) keys[key] = true;
             if (key === 'r') resetDrone();
         });
-        document.addEventListener('keyup', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'w' || e.key === 'ArrowUp') keys.w = false;
-            if (key === 's' || e.key === 'ArrowDown') keys.s = false;
-            if (key === 'a' || e.key === 'ArrowLeft') keys.a = false;
-            if (key === 'd' || e.key === 'ArrowRight') keys.d = false;
-        });
-
+        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
-            mouseXMove = e.movementX * MOUSE_SENSITIVITY;
-            mouseYMove = -e.movementY * MOUSE_SENSITIVITY;
+            mouseRoll = e.movementX * MOUSE_SENSITIVITY;
+            mousePitch = -e.movementY * MOUSE_SENSITIVITY;
+            
             rawMouseX += e.movementX * 0.4;
             rawMouseY += e.movementY * 0.4;
-            rawMouseX = Math.max(-28, Math.min(28, rawMouseX));
-            rawMouseY = Math.max(-28, Math.min(28, rawMouseY));
+            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
+            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
         });
 
         function updateMobileModeButtonText() {
             const btn = document.getElementById('mobile-mode-btn');
-            if (btn) btn.innerText = `MODE: ${MODES[activeMode].name}`;
+            if (btn) {
+                btn.innerText = `MODE: ${MODES[activeMode].name}`;
+            }
         }
 
         document.getElementById('mobile-mode-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            activeMode = (activeMode % 3) + 1;
+            activeMode = (activeMode % 4) + 1;
             updateMobileModeButtonText();
         });
 
@@ -514,7 +599,9 @@
                 e.preventDefault();
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
-                    if (touch.identifier === activeTouchId) updateStick(touch);
+                    if (touch.identifier === activeTouchId) {
+                        updateStick(touch);
+                    }
                 }
             }, { passive: false });
 
@@ -537,7 +624,12 @@
                 let dx = touch.clientX - centerX;
                 let dy = touch.clientY - centerY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+
                 knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 callback(dx / maxDist, dy / maxDist);
             }
@@ -545,15 +637,23 @@
 
         if (isMobile) {
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
-                touchLeftValX = x; touchLeftValY = y;
+                touchLeftValX = x;
+                touchLeftValY = y;
             });
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
-                touchRightValX = x; touchRightValY = y;
+                touchRightValX = x;
+                touchRightValY = y;
             });
         }
 
-        document.getElementById('btn-switch-view').addEventListener('click', (e) => { e.stopPropagation(); cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; });
-        document.getElementById('btn-retry').addEventListener('click', (e) => { e.stopPropagation(); resetDrone(); });
+        document.getElementById('btn-switch-view').addEventListener('click', (e) => {
+            e.stopPropagation();
+            cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
+        });
+        document.getElementById('btn-retry').addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetDrone();
+        });
         document.getElementById('btn-pause').addEventListener('click', (e) => {
             e.stopPropagation();
             if (!isMobile) document.exitPointerLock();
@@ -561,23 +661,40 @@
         });
 
         function resetDrone() {
-            drone.position.set(0, 0.3, 40);
-            drone.velocity.set(0, 0, 0);
-            drone.yaw = 0; drone.pitch = 0; drone.roll = 0;
-            rawMouseX = 0; rawMouseY = 0;
+            drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
+            currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
+            isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
             handleResize();
         }
 
         function handleCollisions() {
-            const px = drone.position.x, py = drone.position.y, pz = drone.position.z;
-            const buffer = 0.7;
+            const px = drone.position.x; const py = drone.position.y; const pz = drone.position.z; 
+            const buffer = 0.8; 
+
             for(let i = 0; i < obstacles.length; i++) {
                 const obs = obstacles[i];
                 if(px + buffer > obs.minX && px - buffer < obs.maxX && pz + buffer > obs.minZ && pz - buffer < obs.maxZ) {
                     if(py + buffer > obs.minY && py - buffer < obs.maxY) {
-                        drone.velocity.multiplyScalar(-0.3);
-                        drone.position.y += 1.0;
+                        let overlapX = Math.min(obs.maxX - (px - buffer), (px + buffer) - obs.minX);
+                        let overlapZ = Math.min(obs.maxZ - (pz - buffer), (pz + buffer) - obs.minZ);
+                        let speedH = Math.sqrt(drone.velocity.x * drone.velocity.x + drone.velocity.z * drone.velocity.z);
+
+                        if (overlapX < overlapZ) {
+                            drone.position.x += (px > (obs.minX + obs.maxX)/2) ? overlapX : -overlapX;
+                            drone.velocity.x *= -0.4;
+                        } else {
+                            drone.position.z += (pz > (obs.minZ + obs.maxZ)/2) ? overlapZ : -overlapZ;
+                            drone.velocity.z *= -0.4;
+                        }
+
+                        if (speedH > 4.5) {
+                            tumbleRotationVelocity.set((Math.random() - 0.5) * 60.0, (Math.random() - 0.5) * 40.0, (Math.random() - 0.5) * 60.0);
+                            drone.velocity.y = speedH * 0.45 + 2.5; 
+                        } else {
+                            drone.velocity.y = 2.8; 
+                            tumbleRotationVelocity.set((Math.random()-0.5)*9, (Math.random()-0.5)*9, (Math.random()-0.5)*9);
+                        }
                     }
                 }
             }
@@ -590,104 +707,132 @@
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
-            let throttleInput = 0;
-            let yawInput = 0;
-            let pitchInput = 0;
-            let rollInput = 0;
+            let inputYaw = 0;
 
             if (isMobile) {
-                throttleInput = -touchLeftValY;
-                yawInput = touchLeftValX * 2.5 * dt;
-                pitchInput = -touchRightValY;
-                rollInput = touchRightValX;
+                const targetThrottle = (-touchLeftValY + 1) / 2;
+                currentThrottle = targetThrottle;
+                inputYaw = touchLeftValX * YAW_RATE * dt;
+
+                const targetPitch = -touchRightValY * modeCfg.maxAngle;
+                const targetRoll = touchRightValX * modeCfg.maxAngle;
+
+                if (modeCfg.hasAutoLevel) {
+                    drone.euler.y -= inputYaw;
+                    drone.euler.x = targetPitch;
+                    drone.euler.z = targetRoll;
+                    drone.rotation.setFromEuler(drone.euler);
+                } else {
+                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-touchRightValY * 2.0 * dt, -inputYaw, -touchRightValX * 2.0 * dt, 'YXZ'));
+                    drone.rotation.multiply(deltaRotation).normalize();
+                }
             } else {
-                if (keys.w) throttleInput = 1.0;
-                if (keys.s) throttleInput = -1.0;
-                if (keys.a) yawInput = -2.5 * dt;
-                if (keys.d) yawInput = 2.5 * dt;
                 if (document.pointerLockElement === container) {
-                    pitchInput = -mouseYMove * 8.0;
-                    rollInput = mouseXMove * 8.0;
+                    if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
+                    if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
+                    if (keys.a) inputYaw = -YAW_RATE * dt;
+                    if (keys.d) inputYaw = YAW_RATE * dt;
+
+                    if (modeCfg.hasAutoLevel) {
+                        drone.euler.y -= inputYaw;
+                        drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
+                        drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
+                        if (Math.abs(mousePitch) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
+                        if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
+                        drone.rotation.setFromEuler(drone.euler);
+                    } else {
+                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'));
+                        drone.rotation.multiply(deltaRotation).normalize();
+                    }
+                } else {
+                    rawMouseX *= Math.exp(-10.0 * dt);
+                    rawMouseY *= Math.exp(-10.0 * dt);
                 }
             }
 
-            // DJI Avata 1 Sport (S) Mode Flight Physics & Bank-to-Turn
-            if (activeMode === 2) {
-                // S-Mode: Yaw input combines with roll for authentic bank-to-turn responsiveness
-                drone.yaw -= yawInput + (rollInput * 1.5 * dt);
-                drone.roll = THREE.MathUtils.lerp(drone.roll, -rollInput * 0.85, 10.0 * dt);
-                drone.pitch = THREE.MathUtils.lerp(drone.pitch, pitchInput * 0.6, 10.0 * dt);
+            updateAudioEngine(currentThrottle);
 
-                const forwardDir = new THREE.Vector3(Math.sin(drone.yaw), 0, Math.cos(drone.yaw));
-                const targetSpeed = (throttleInput > 0 ? modeCfg.maxSpeed : modeCfg.maxSpeed * 0.5) * Math.max(0.2, throttleInput + 0.5);
-                
-                const moveForce = forwardDir.multiplyScalar((throttleInput + 0.6) * 18.0);
-                drone.velocity.addScaledVector(moveForce, dt);
-                drone.velocity.y = THREE.MathUtils.lerp(drone.velocity.y, throttleInput * 6.0, 8.0 * dt);
+            if (drone.position.y > 1.5) { isSpawnedSafe = false; }
 
-            } else if (activeMode === 3) {
-                // Manual Acro Mode
-                drone.yaw -= yawInput * 1.5;
-                drone.roll += rollInput * dt * 4.0;
-                drone.pitch += pitchInput * dt * 4.0;
-                drone.rotation.set(drone.pitch, drone.yaw, drone.roll, 'YXZ');
-                
-                const forwardDir = new THREE.Vector3(0, 0, -1).applyEuler(drone.rotation);
-                drone.velocity.addScaledVector(forwardDir, throttleInput * 25.0 * dt);
-                drone.velocity.y -= 9.81 * dt; // Gravity
-
-            } else {
-                // Normal (N) Mode - Stable self-leveling
-                drone.yaw -= yawInput;
-                drone.roll = THREE.MathUtils.lerp(drone.roll, 0, 12.0 * dt);
-                drone.pitch = THREE.MathUtils.lerp(drone.pitch, 0, 12.0 * dt);
-
-                const forwardDir = new THREE.Vector3(Math.sin(drone.yaw), 0, Math.cos(drone.yaw));
-                drone.velocity.copy(forwardDir.multiplyScalar(throttleInput * modeCfg.maxSpeed));
-                drone.velocity.y = THREE.MathUtils.lerp(drone.velocity.y, throttleInput * 4.0, 10.0 * dt);
+            if (tumbleRotationVelocity.lengthSq() > 0.001) {
+                const tumbleQuaternion = new THREE.Quaternion().setFromEuler(
+                    new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ')
+                );
+                drone.rotation.multiply(tumbleQuaternion).normalize();
+                tumbleRotationVelocity.multiplyScalar(Math.exp(-2.4 * dt)); 
+                if (modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.4) { 
+                    drone.euler.setFromQuaternion(drone.rotation, 'YXZ'); 
+                }
             }
 
-            if (activeMode !== 3) {
-                drone.rotation.set(drone.pitch, drone.yaw, drone.roll, 'YXZ');
-            }
+            const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
+            const thrust = localUp.multiplyScalar(currentThrottle * modeCfg.maxThrust);
+            const gravityForce = new THREE.Vector3(0, -GRAVITY, 0);
 
-            drone.velocity.multiplyScalar(0.96); // Drag
+            const accel = new THREE.Vector3().addVectors(thrust, gravityForce);
+            drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
+            drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
             if (drone.position.y < 0.3) {
-                drone.position.y = 0.3;
-                drone.velocity.y = 0;
+                drone.position.y = 0.3; 
+                if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
+                    tumbleRotationVelocity.set((Math.random()-0.5)*45, (Math.random()-0.5)*25, (Math.random()-0.5)*45);
+                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.38 + 1.2;
+                } else if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 0.5) {
+                    drone.velocity.y = 1.8;
+                    tumbleRotationVelocity.set((Math.random()-0.5)*6, (Math.random()-0.5)*6, (Math.random()-0.5)*6);
+                } else {
+                    drone.velocity.y = 0;
+                }
+                drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
+                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.2) { 
+                    drone.euler.x = 0; drone.euler.z = 0; drone.rotation.setFromEuler(drone.euler); 
+                }
             }
 
             handleCollisions();
 
             droneGroup.position.copy(drone.position);
-            droneGroup.quaternion.setFromEuler(drone.rotation);
-            propMeshes.forEach(prop => { prop.rotation.y += 0.8; });
+            droneGroup.quaternion.copy(drone.rotation);
 
-            const currentSpeed = drone.velocity.length();
-            updateAudioEngine(Math.abs(throttleInput) + 0.2, currentSpeed);
+            if (currentThrottle > 0.05) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
+
+            cloudGroup.children.forEach(c => {
+                c.position.x += 1.5 * dt;
+                if(c.position.x > 600) c.position.x = -600;
+            });
 
             if (cameraMode === "FPV") {
                 camera.position.copy(drone.position);
-                camera.quaternion.copy(droneGroup.quaternion);
+                const camRot = drone.rotation.clone();
+                camRot.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), CAMERA_UPTILT));
+                camera.quaternion.copy(camRot);
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
-                const backOffset = new THREE.Vector3(0, 2.0, 6.0).applyEuler(drone.rotation);
-                camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.25);
+                const backOffset = new THREE.Vector3(0, 2.5, 7.5).applyQuaternion(drone.rotation);
+                camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.2);
                 camera.lookAt(drone.position);
             }
 
-            mouseXMove = 0; mouseYMove = 0;
+            mouseRoll = 0; mousePitch = 0;
 
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
-            let leftY = (isMobile ? touchLeftValY : (keys.s ? 1 : (keys.w ? -1 : 0))) * 35;
-            let leftX = (isMobile ? touchLeftValX : (keys.d ? 1 : (keys.a ? -1 : 0))) * 24;
-            let rightX = isMobile ? touchRightValX * 35 : rawMouseX;
-            let rightY = isMobile ? touchRightValY * 35 : rawMouseY;
+            let leftY, leftX, rightX, rightY;
 
+            if (isMobile) {
+                leftY = touchLeftValY * 35;
+                leftX = touchLeftValX * 35;
+                rightX = touchRightValX * 35;
+                rightY = touchRightValY * 35;
+            } else {
+                leftY = (currentThrottle - 0.5) * -55; 
+                leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
+                rightX = rawMouseX;
+                rightY = rawMouseY;
+            }
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
