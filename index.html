@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <center></center>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DJI Goggles 3 - FPV City Simulator</title>
+    <title>DJI Goggles 3 - FPV Cinematic Simulator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; position: fixed; }
-        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-        canvas { width: 100%; height: 100%; display: block; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
+        canvas { width: 100%; height: 100%; display: block; filter: saturate(1.15) contrast(1.05); }
         
         /* DJI Goggles 3 OSD Overlay Style matching reference screenshots */
         #osd-overlay {
@@ -17,7 +19,7 @@
             text-shadow: 0 1px 3px rgba(0,0,0,0.9);
         }
 
-        /* Top Bar Icons (Camera switch, Return home icon, Pause/Settings) */
+        /* Top Bar Icons */
         #osd-top-bar {
             position: absolute; top: 15px; right: 25px;
             display: flex; align-items: center; gap: 12px; z-index: 7; pointer-events: auto;
@@ -50,7 +52,7 @@
             background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; font-style: italic;
         }
 
-        /* Horizon Pitch Arc Overlay (Right Center looking like DJI Goggles 3) */
+        /* Horizon Pitch Arc Overlay */
         #horizon-arc-hud {
             position: absolute; right: 65px; top: 40%; width: 140px; height: 140px;
             transform: translateY(-50%); pointer-events: none; display: flex; align-items: center; justify-content: center;
@@ -70,7 +72,7 @@
             position: absolute; right: 5px; top: -14px; font-size: 10px; font-weight: bold; color: #fff; font-style: italic;
         }
 
-        /* Bottom Left: Avata 2 Style Italic Mode Box + Telemetry pills with italicized numbers */
+        /* Bottom Left: Italic Mode Box + Telemetry */
         #osd-bottom-left {
             position: absolute; bottom: 25px; left: 30px;
             display: flex; align-items: center; gap: 8px; pointer-events: auto;
@@ -105,19 +107,18 @@
             border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;
         }
 
-        /* Bottom Right FPS & Indicator Icons */
+        /* Bottom Right FPS */
         #osd-bottom-right-fps {
             position: absolute; bottom: 30px; right: 70px; font-size: 13px; font-weight: bold; font-style: italic; opacity: 0.9;
         }
 
-        /* RC Stick Live Visualizers (Bottom center, slightly shifted up, dynamic styling) */
+        /* RC Stick Live Visualizers (Bottom center, shifted slightly up) */
         .rc-stick-display {
             position: absolute; bottom: 75px; width: 90px; height: 90px;
             background: rgba(0,0,0,0.2); border: 1.5px solid rgba(255,255,255,0.3);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             pointer-events: none; z-index: 5; transition: border-radius 0.3s ease;
         }
-        /* When in RC 3 FPV tutorial mode, make sticks round/circular; after completion, morph to square/kotak */
         .rc-stick-display.shape-circle { border-radius: 50%; }
         .rc-stick-display.shape-kotak { border-radius: 12px; border-color: rgba(0,255,204,0.6); background: rgba(0,0,0,0.35); }
 
@@ -129,7 +130,7 @@
             transform: translate(0px, 0px); transition: transform 0.05s linear;
         }
 
-        /* TUTORIAL OVERLAY (DJI Avata 2 Motor Start Tutorial) */
+        /* TUTORIAL OVERLAY */
         #tutorial-overlay {
             position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 204, 0, 0.6);
@@ -150,7 +151,6 @@
             position: absolute; bottom: 20px; width: 140px; height: 140px;
             background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%; pointer-events: auto; touch-action: none;
-            -webkit-touch-callout: none;
         }
         #touch-left-pad { left: 30px; }
         #touch-right-pad { right: 70px; }
@@ -210,13 +210,13 @@
     <div id="home-menu">
         <div class="menu-card">
             <h1>DJI Goggles 3 Simulator</h1>
-            <div class="subtitle">FPV Realistic City Experience</div>
+            <div class="subtitle">Cinematic FPV Experience (FOV 140°)</div>
 
             <div class="menu-section">
                 <label>Control Mode</label>
                 <div class="mode-select-grid">
-                    <button class="mode-btn active" id="btn-mode-desktop" type="button" onclick="setControlMode('desktop')">💻 Desktop Mode</button>
-                    <button class="mode-btn" id="btn-mode-mobile" type="button" onclick="setControlMode('mobile')">📱 Mobile / iPhone</button>
+                    <button class="mode-btn active" id="btn-mode-desktop" type="button" onclick="setControlMode('desktop')">💻 PC / Keyboard & Mouse</button>
+                    <button class="mode-btn" id="btn-mode-mobile" type="button" onclick="setControlMode('mobile')">📱 Mobile / Touch</button>
                 </div>
             </div>
 
@@ -233,7 +233,7 @@
             <button class="start-btn" type="button" onclick="launchSimulator()">START FLIGHT</button>
 
             <div class="controls-hint" id="hint-text">
-                <b>Tutorial:</b> Complete the DJI Avata 2 motor start gesture (both sticks inward-down) to arm motors.
+                <b>PC Controls:</b> Click canvas to lock pointer. Press <b>I + J</b> (or Down+Inward keys) to start motors. Use <b>W/S</b> (Throttle/Pitch), <b>A/D</b> (Yaw/Roll), or Mouse look.
             </div>
         </div>
     </div>
@@ -264,7 +264,7 @@
             <!-- Tutorial Banner for Motor Start -->
             <div id="tutorial-overlay">
                 <div id="tutorial-title">DJI Avata 2 Tutorial (RC 3 FPV)</div>
-                <div id="tutorial-desc">Move both sticks inward & down to start motors</div>
+                <div id="tutorial-desc">PC: Hold J + I keys (or both sticks inward-down) to start motors</div>
             </div>
 
             <div id="osd-bottom-left">
@@ -283,7 +283,7 @@
 
             <div id="osd-bottom-right-fps">61 FPS</div>
 
-            <!-- RC Stick Live Visualizers (Centered, slightly upper, changing shape dynamically) -->
+            <!-- RC Stick Live Visualizers -->
             <div class="rc-stick-display shape-circle" id="rc-left">
                 <div class="rc-gimbal-dot" id="dot-left"></div>
             </div>
@@ -304,7 +304,7 @@
     </div>
 
     <script>
-        let selectedControlMode = 'mobile';
+        let selectedControlMode = 'desktop';
         let selectedGraphics = 'medium';
         let motorsStarted = false;
         let tutorialCompleted = false;
@@ -325,6 +325,7 @@
 
         function openSettings() {
             document.getElementById('home-menu').style.display = 'flex';
+            document.exitPointerLock();
         }
 
         let audioCtx = null, motorOsc = null, motorGain = null, noiseNode = null, noiseGain = null, isAudioInitialized = false;
@@ -380,11 +381,12 @@
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x8cb4ff);
-        scene.fog = new THREE.FogExp2(0xb2d0ff, 0.001);
+        scene.background = new THREE.Color(0x92b6ff);
+        // Cinematic atmospheric blur fog
+        scene.fog = new THREE.FogExp2(0xa1c4ff, 0.0014);
 
-        // First-person camera setup (zero obstruction from drone model)
-        const camera = new THREE.PerspectiveCamera(110, window.innerWidth / window.innerHeight, 0.1, 3000);
+        // FOV set to 140° for immersive wide cinematic look
+        const camera = new THREE.PerspectiveCamera(140, window.innerWidth / window.innerHeight, 0.1, 3000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
@@ -395,25 +397,25 @@
                 case 'low':
                     renderer.setPixelRatio(1);
                     renderer.shadowMap.enabled = false;
-                    scene.fog.density = 0.0018;
+                    scene.fog.density = 0.002;
                     break;
                 case 'medium':
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    scene.fog.density = 0.001;
+                    scene.fog.density = 0.0014;
                     break;
                 case 'high':
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    scene.fog.density = 0.0007;
+                    scene.fog.density = 0.001;
                     break;
                 case 'ultra':
                     renderer.setPixelRatio(window.devicePixelRatio);
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    scene.fog.density = 0.0004;
+                    scene.fog.density = 0.0007;
                     break;
             }
         }
@@ -425,23 +427,22 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-        const sunLight = new THREE.DirectionalLight(0xfffae0, 1.0);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+        const sunLight = new THREE.DirectionalLight(0xfffae0, 1.1);
         sunLight.position.set(200, 400, 200);
         sunLight.castShadow = true;
         scene.add(sunLight);
 
-        // Realistic City Environment Map generation (matching reference look with modern skyscrapers and roads)
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.8 });
+        // Ground and Cinematic Stylized Environment Map
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3d444d, roughness: 0.85 });
         const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.1;
         scene.add(ground);
 
-        // Procedural realistic buildings and futuristic towers
-        const bldgMat1 = new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.2, metalness: 0.6 });
-        const bldgMat2 = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.3, metalness: 0.4 });
-        const glassMat = new THREE.MeshStandardMaterial({ color: 0x1976d2, roughness: 0.1, metalness: 0.9 });
+        // Procedural Cinematic Buildings & Towers
+        const bldgMat1 = new THREE.MeshStandardMaterial({ color: 0x8298a6, roughness: 0.25, metalness: 0.5 });
+        const bldgMat2 = new THREE.MeshStandardMaterial({ color: 0x2e3b44, roughness: 0.35, metalness: 0.4 });
 
         function createSkyscraper(x, z, w, h, d, mat) {
             const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -451,13 +452,21 @@
             scene.add(bldg);
         }
 
-        // Generate city grid
         for (let x = -300; x <= 300; x += 100) {
             for (let z = -300; z <= 300; z += 100) {
-                if (Math.abs(x) < 40 && Math.abs(z) < 40) continue; // Leave central spawn clear
-                const height = 60 + Math.abs(Math.sin(x * z) * 180);
+                if (Math.abs(x) < 40 && Math.abs(z) < 40) continue;
+                const height = 70 + Math.abs(Math.sin(x * z) * 190);
                 createSkyscraper(x + (Math.random() - 0.5) * 20, z + (Math.random() - 0.5) * 20, 50, height, 50, Math.random() > 0.5 ? bldgMat1 : bldgMat2);
             }
+        }
+
+        // Floating Yellow Hot Air Balloons (as requested: "yellow its a balon fly bot a control fix")
+        const balloonGeo = new THREE.SphereGeometry(8, 16, 16);
+        const balloonMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.4, emissive: 0x332200 });
+        for(let i=0; i<6; i++) {
+            const balloon = new THREE.Mesh(balloonGeo, balloonMat);
+            balloon.position.set((Math.random() - 0.5) * 600, 150 + Math.random() * 150, (Math.random() - 0.5) * 600);
+            scene.add(balloon);
         }
 
         const drone = {
@@ -474,6 +483,8 @@
         };
         let activeMode = 2;
         let touchLeftValX = 0, touchLeftValY = 0, touchRightValX = 0, touchRightValY = 0;
+        let keyboardInput = { w: false, s: false, a: false, d: false, q: false, e: false, up: false, down: false, left: false, right: false };
+        let mouseLookX = 0, mouseLookY = 0;
         let currentThrottle = 0;
 
         function cycleFlightMode() {
@@ -485,8 +496,51 @@
         function launchSimulator() {
             initAudio();
             document.getElementById('home-menu').style.display = 'none';
-            document.getElementById('touch-controls').style.display = 'block';
+            if (selectedControlMode === 'mobile') {
+                document.getElementById('touch-controls').style.display = 'block';
+            } else {
+                container.requestPointerLock();
+            }
         }
+
+        // Keyboard & Mouse Listeners for PC Lock
+        window.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w') keyboardInput.w = true;
+            if (k === 's') keyboardInput.s = true;
+            if (k === 'a') keyboardInput.a = true;
+            if (k === 'd') keyboardInput.d = true;
+            if (k === 'i' || e.key === 'ArrowUp') keyboardInput.up = true;
+            if (k === 'j' || e.key === 'ArrowDown') keyboardInput.down = true;
+            if (k === 'h' || e.key === 'ArrowLeft') keyboardInput.left = true;
+            if (k === 'l' || e.key === 'ArrowRight') keyboardInput.right = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w') keyboardInput.w = false;
+            if (k === 's') keyboardInput.s = false;
+            if (k === 'a') keyboardInput.a = false;
+            if (k === 'd') keyboardInput.d = false;
+            if (k === 'i' || e.key === 'ArrowUp') keyboardInput.up = false;
+            if (k === 'j' || e.key === 'ArrowDown') keyboardInput.down = false;
+            if (k === 'h' || e.key === 'ArrowLeft') keyboardInput.left = false;
+            if (k === 'l' || e.key === 'ArrowRight') keyboardInput.right = false;
+        });
+
+        container.addEventListener('click', () => {
+            if (selectedControlMode === 'desktop' && document.getElementById('home-menu').style.display === 'none') {
+                container.requestPointerLock();
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === container) {
+                mouseLookX -= e.movementX * 0.003;
+                mouseLookY -= e.movementY * 0.003;
+                mouseLookY = Math.max(-1.2, Math.min(1.2, mouseLookY));
+            }
+        });
 
         function setupTouchJoystick(padId, knobId, callback) {
             const pad = document.getElementById(padId);
@@ -541,6 +595,7 @@
             currentThrottle = 0;
             motorsStarted = false;
             tutorialCompleted = false;
+            mouseLookX = 0; mouseLookY = 0;
             const tut = document.getElementById('tutorial-overlay');
             tut.style.opacity = '1';
             tut.style.display = 'block';
@@ -567,28 +622,40 @@
 
             const modeCfg = MODES[activeMode];
             
-            // DJI Avata 2 Motor Start Gesture Check: both sticks pulled inward and down (Left X > 0.6, Left Y > 0.6 AND Right X < -0.6, Right Y > 0.6)
+            // Calculate effective inputs from PC Keyboard / Mouse or Touch
+            let leftX = 0, leftY = 0, rightX = 0, rightY = 0;
+            if (selectedControlMode === 'desktop') {
+                leftY = (keyboardInput.w ? -1 : 0) + (keyboardInput.s ? 1 : 0);
+                leftX = (keyboardInput.left ? -1 : 0) + (keyboardInput.right ? 1 : 0) + (keyboardInput.a ? -0.5 : 0) + (keyboardInput.d ? 0.5 : 0);
+                rightY = mouseLookY;
+                rightX = mouseLookX;
+            } else {
+                leftX = touchLeftValX; leftY = touchLeftValY;
+                rightX = touchRightValX; rightY = touchRightValY;
+            }
+
+            // DJI Avata 2 Motor Start Gesture: Left Stick Inward-Down + Right Stick Down (or Keyboard J + I keys held)
             if (!motorsStarted) {
-                if (touchLeftValX > 0.5 && touchLeftValY > 0.5 && touchRightValX < -0.5 && touchRightValY > 0.5) {
+                if ((selectedControlMode === 'desktop' && keyboardInput.down && keyboardInput.up) || 
+                    (leftX > 0.5 && leftY > 0.5 && rightY > 0.5)) {
                     motorsStarted = true;
                     tutorialCompleted = true;
                     const tut = document.getElementById('tutorial-overlay');
                     tut.style.opacity = '0';
                     setTimeout(() => { tut.style.display = 'none'; }, 500);
-                    // Morph RC stick overlays to normal square / 'kotak' shape
                     document.getElementById('rc-left').className = 'rc-stick-display shape-kotak';
                     document.getElementById('rc-right').className = 'rc-stick-display shape-kotak';
                 }
             }
 
-            currentThrottle = motorsStarted ? (-touchLeftValY + 1) / 2 : 0;
-            let inputYaw = motorsStarted ? touchLeftValX * 3.5 * dt : 0;
+            currentThrottle = motorsStarted ? (-leftY + 1) / 2 : 0;
+            let inputYaw = motorsStarted ? leftX * 3.5 * dt : 0;
 
-            const targetPitch = motorsStarted ? -touchRightValY * modeCfg.maxAngle : 0;
-            const targetRoll = motorsStarted ? touchRightValX * modeCfg.maxAngle : 0;
+            const targetPitch = motorsStarted ? -rightY * modeCfg.maxAngle : 0;
+            const targetRoll = motorsStarted ? rightX * modeCfg.maxAngle : 0;
 
-            document.getElementById('dot-left').style.transform = `translate(${touchLeftValX * 28}px, ${touchLeftValY * 28}px)`;
-            document.getElementById('dot-right').style.transform = `translate(${touchRightValX * 28}px, ${touchRightValY * 28}px)`;
+            document.getElementById('dot-left').style.transform = `translate(${leftX * 28}px, ${leftY * 28}px)`;
+            document.getElementById('dot-right').style.transform = `translate(${rightX * 28}px, ${rightY * 28}px)`;
 
             updateAudioEngine(currentThrottle);
 
@@ -613,7 +680,6 @@
 
             if (drone.position.y < 0.3) { drone.position.y = 0.3; drone.velocity.y = 0; }
 
-            // First-person camera positioning with zero obstruction (drone model completely removed from camera view)
             camera.position.copy(drone.position);
             camera.quaternion.copy(drone.rotation);
 
