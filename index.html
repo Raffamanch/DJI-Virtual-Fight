@@ -27,7 +27,6 @@
             color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex;
             align-items: center; justify-content: center; font-size: 14px; cursor: pointer;
             backdrop-filter: blur(4px);
-            touch-action: manipulation;
         }
         .osd-icon-btn:hover { background: rgba(255,255,255,0.2); }
 
@@ -109,39 +108,37 @@
         }
         .touch-pad {
             position: absolute; bottom: 15px; width: 130px; height: 130px;
-            background: rgba(255, 255, 255, 0.04); border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255, 255, 255, 0.12);
             border-radius: 50%; pointer-events: auto; touch-action: none;
         }
         #touch-left-pad { left: 25px; }
         #touch-right-pad { right: 65px; }
         .touch-knob {
             position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
-            background: rgba(255, 255, 255, 0.45); border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none;
         }
 
         /* HOME / SETTINGS MENU MODAL */
         #home-menu {
-            position: absolute; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.92);
+            position: absolute; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.9);
             color: #ffffff; display: flex; flex-direction: column; justify-content: center;
             align-items: center; text-align: center; z-index: 20; backdrop-filter: blur(10px);
-            touch-action: manipulation;
         }
         .menu-card {
-            background: rgba(22, 28, 38, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(22, 28, 38, 0.95); padding: 30px 40px; border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); max-width: 480px; width: 90%;
         }
-        h1 { margin-bottom: 6px; font-size: 20px; letter-spacing: 1px; color: #ffcc00; }
-        .subtitle { font-size: 12px; color: #888; margin-bottom: 18px; }
+        h1 { margin-bottom: 6px; font-size: 22px; letter-spacing: 1px; color: #ffcc00; }
+        .subtitle { font-size: 12px; color: #888; margin-bottom: 22px; }
         
-        .menu-section { margin-bottom: 16px; text-align: left; }
+        .menu-section { margin-bottom: 18px; text-align: left; }
         .menu-section label { display: block; font-size: 11px; color: #aaa; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
         
         .mode-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .mode-btn {
             background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;
-            padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;
-            touch-action: manipulation;
+            padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; transition: all 0.2s;
         }
         .mode-btn.active { background: #ffcc00; color: #000; border-color: #ffcc00; }
 
@@ -149,16 +146,15 @@
         .graphic-btn {
             background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;
             padding: 8px 4px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center;
-            touch-action: manipulation;
         }
         .graphic-btn.active { background: #00ffcc; color: #000; border-color: #00ffcc; }
 
         .start-btn {
             width: 100%; background: linear-gradient(135deg, #ffcc00, #ff9900); color: #000;
             border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: bold;
-            cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(255,204,0,0.3);
-            touch-action: manipulation;
+            cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(255,204,0,0.3); transition: transform 0.1s;
         }
+        .start-btn:active { transform: scale(0.98); }
         .controls-hint { margin-top: 15px; font-size: 11px; color: #777; line-height: 1.4; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -174,35 +170,36 @@
             <div class="menu-section">
                 <label>Control Mode</label>
                 <div class="mode-select-grid">
-                    <button class="mode-btn active" id="btn-mode-desktop" type="button" onclick="setControlMode('desktop')">💻 Desktop Mode</button>
-                    <button class="mode-btn" id="btn-mode-mobile" type="button" onclick="setControlMode('mobile')">📱 Mobile Mode</button>
+                    <button class="mode-btn active" id="btn-mode-desktop" onclick="setControlMode('desktop')">💻 Desktop Mode</button>
+                    <button class="mode-btn" id="btn-mode-mobile" onclick="setControlMode('mobile')">📱 Mobile Mode</button>
                 </div>
             </div>
 
             <div class="menu-section">
-                <label>Graphics Preset</label>
+                <label>Graphics Preset (Press 'O' in-game)</label>
                 <div class="graphic-select-grid">
-                    <button class="graphic-btn" id="gfx-low" type="button" onclick="setGraphics('low')">Low</button>
-                    <button class="graphic-btn active" id="gfx-medium" type="button" onclick="setGraphics('medium')">Medium</button>
-                    <button class="graphic-btn" id="gfx-high" type="button" onclick="setGraphics('high')">High</button>
-                    <button class="graphic-btn" id="gfx-ultra" type="button" onclick="setGraphics('ultra')">Ultra</button>
+                    <button class="graphic-btn" id="gfx-low" onclick="setGraphics('low')">Low</button>
+                    <button class="graphic-btn active" id="gfx-medium" onclick="setGraphics('medium')">Medium</button>
+                    <button class="graphic-btn" id="gfx-high" onclick="setGraphics('high')">High</button>
+                    <button class="graphic-btn" id="gfx-ultra" onclick="setGraphics('ultra')">Ultra</button>
                 </div>
             </div>
 
-            <button class="start-btn" type="button" onclick="launchSimulator()">START FLIGHT</button>
+            <button class="start-btn" onclick="launchSimulator()">START FLIGHT</button>
 
             <div class="controls-hint" id="hint-text">
-                <b>Controls:</b> Use left joystick for throttle/yaw and right joystick for pitch/roll.
+                <b>Desktop Controls:</b> W/S Throttle, A/D Yaw, Mouse Pitch/Roll, R Reset, O Settings
             </div>
         </div>
     </div>
 
     <div id="canvas-container">
-        <!-- DJI Goggles 3 OSD UI Layout -->
+        <!-- DJI Goggles 3 OSD UI Layout matching the reference video -->
         <div id="osd-overlay">
             <div id="osd-top-bar">
-                <button class="osd-icon-btn" type="button" onclick="openSettings()" title="Settings">⚙</button>
-                <button class="osd-icon-btn" type="button" onclick="resetDrone()" title="Reset">🔄</button>
+                <button class="osd-icon-btn" onclick="openSettings()" title="Settings">⚙</button>
+                <button class="osd-icon-btn" onclick="resetDrone()" title="Reset">🔄</button>
+                <button class="osd-icon-btn" title="Pause">⏸</button>
             </div>
 
             <div id="osd-gimbal-slider">
@@ -228,7 +225,7 @@
 
             <div id="osd-bottom-right-fps">61 FPS</div>
 
-            <!-- RC Stick Live Visualizers -->
+            <!-- RC Stick Live Visualizers matching video layout -->
             <div class="rc-stick-display" id="rc-left">
                 <div class="rc-gimbal-dot" id="dot-left"></div>
             </div>
@@ -237,7 +234,7 @@
             </div>
         </div>
 
-        <!-- Touch Joysticks -->
+        <!-- Touch Joysticks (Active in Mobile Mode) -->
         <div id="touch-controls">
             <div id="touch-left-pad" class="touch-pad">
                 <div id="touch-left-knob" class="touch-knob"></div>
@@ -249,13 +246,16 @@
     </div>
 
     <script>
-        let selectedControlMode = 'mobile';
+        let selectedControlMode = 'desktop';
         let selectedGraphics = 'medium';
 
         function setControlMode(mode) {
             selectedControlMode = mode;
             document.getElementById('btn-mode-desktop').classList.toggle('active', mode === 'desktop');
             document.getElementById('btn-mode-mobile').classList.toggle('active', mode === 'mobile');
+            document.getElementById('hint-text').innerHTML = mode === 'desktop' ? 
+                '<b>Desktop Controls:</b> W/S Throttle, A/D Yaw, Mouse Pitch/Roll, R Reset, O Settings' :
+                '<b>Mobile Controls:</b> Left Stick (Throttle/Yaw), Right Stick (Pitch/Roll), O Settings';
         }
 
         function setGraphics(preset) {
@@ -268,11 +268,17 @@
 
         function openSettings() {
             document.getElementById('home-menu').style.display = 'flex';
+            if (!isMobileDevice && document.pointerLockElement) {
+                document.exitPointerLock();
+            }
         }
 
-        const isMobileDevice = true;
-        setControlMode('mobile');
+        const isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobileDevice) {
+            setControlMode('mobile');
+        }
 
+        // --- WEB AUDIO MOTOR SOUND ENGINE ---
         let audioCtx = null, motorOsc = null, motorGain = null, noiseNode = null, noiseGain = null, isAudioInitialized = false;
 
         function initAudio() {
@@ -364,37 +370,56 @@
         }
         applyGraphicsSettings();
 
-        window.addEventListener('resize', () => {
+        function handleResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
+        window.addEventListener('resize', handleResize);
 
+        // --- LIGHTS & REALISTIC SHADOWS ---
         scene.add(new THREE.AmbientLight(0xffffff, 0.6));
         const sunLight = new THREE.DirectionalLight(0xfffae0, 0.9);
         sunLight.position.set(150, 350, 100);
         sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 1000;
+        const d = 150;
+        sunLight.shadow.camera.left = -d;
+        sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d;
+        sunLight.shadow.camera.bottom = -d;
+        sunLight.shadow.bias = -0.0005;
         scene.add(sunLight);
 
+        // --- REALISTIC STADIUM ENVIRONMENT (matching video map) ---
         const turfCanvas = document.createElement('canvas');
         turfCanvas.width = 512; turfCanvas.height = 512;
         const ctxTurf = turfCanvas.getContext('2d');
         ctxTurf.fillStyle = '#417c34'; ctxTurf.fillRect(0, 0, 512, 512);
+        for(let i=0; i<10; i++) {
+            if(i % 2 === 0) { ctxTurf.fillStyle = 'rgba(0,0,0,0.08)'; ctxTurf.fillRect(0, i * 51.2, 512, 51.2); }
+        }
         const turfTex = new THREE.CanvasTexture(turfCanvas);
         turfTex.wrapS = THREE.RepeatWrapping; turfTex.wrapT = THREE.RepeatWrapping; turfTex.repeat.set(1, 2);
 
         const pitch = new THREE.Mesh(new THREE.PlaneGeometry(90, 140), new THREE.MeshStandardMaterial({ map: turfTex, roughness: 0.8 }));
         pitch.rotation.x = -Math.PI / 2;
+        pitch.receiveShadow = true;
         scene.add(pitch);
 
         const track = new THREE.Mesh(new THREE.RingGeometry(48, 70, 48), new THREE.MeshStandardMaterial({ color: 0x9e3f3f, roughness: 0.7 }));
         track.rotation.x = -Math.PI / 2;
         track.position.y = 0.04;
+        track.receiveShadow = true;
         scene.add(track);
 
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.9 }));
         floor.rotation.x = -Math.PI / 2;
         floor.position.y = -0.1;
+        floor.receiveShadow = true;
         scene.add(floor);
 
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x555c66, roughness: 0.5 });
@@ -406,12 +431,15 @@
             for(let i=0; i<steps; i++) {
                 const box = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d / steps), wallMat);
                 box.position.set(0, i * 1.6, (i - steps/2) * (d / steps));
+                box.castShadow = true; box.receiveShadow = true;
                 standGroup.add(box);
             }
             const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 12, 1.8, d + 18), trussMat);
             roof.position.set(0, steps * 1.6 + 6, 0);
             roof.rotation.x = 0.22;
+            roof.castShadow = true; roof.receiveShadow = true;
             standGroup.add(roof);
+            
             standGroup.position.set(x, 0, z);
             standGroup.rotation.y = rotY;
             scene.add(standGroup);
@@ -419,4 +447,229 @@
         createStadiumStand(0, -80, 0, 120, 50);
         createStadiumStand(0, 80, Math.PI, 120, 50);
         createStadiumStand(-65, 0, Math.PI / 2, 120, 50);
-      
+        createStadiumStand(65, 0, -Math.PI / 2, 120, 50);
+
+        // --- DRONE MODEL ---
+        const droneGroup = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.3 });
+        const propMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.1 });
+
+        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
+        fuselage.castShadow = true;
+        droneGroup.add(fuselage);
+
+        const propMeshes = [];
+        [{ x: 0.95, z: 0.85 }, { x: -0.95, z: 0.85 }, { x: 0.95, z: -0.85 }, { x: -0.95, z: -0.85 }].forEach(pos => {
+            const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.4, 16, 1, true), bodyMat);
+            duct.position.set(pos.x, 0, pos.z);
+            duct.castShadow = true;
+            droneGroup.add(duct);
+            const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.18), propMat);
+            prop.position.set(pos.x, 0, pos.z);
+            droneGroup.add(prop);
+            propMeshes.push(prop);
+        });
+        scene.add(droneGroup);
+
+        const drone = {
+            position: new THREE.Vector3(0, 5, 45),
+            velocity: new THREE.Vector3(0, 0, 0),
+            rotation: new THREE.Quaternion(),
+            euler: new THREE.Euler(0, 0, 0, 'YXZ')
+        };
+
+        const MODES = {
+            1: { code: "N", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.45 },
+            2: { code: "S", maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.75 },
+            3: { code: "M", maxThrust: 25.5, drag: 0.020, hasAutoLevel: false }
+        };
+        let activeMode = 2; // Default to Sport mode like in video
+
+        let keys = { w: false, s: false, a: false, d: false };
+        let mouseRoll = 0, mousePitch = 0;
+        let touchLeftValX = 0, touchLeftValY = 0, touchRightValX = 0, touchRightValY = 0;
+        let currentThrottle = 0;
+
+        function launchSimulator() {
+            initAudio();
+            handleResize();
+            document.getElementById('home-menu').style.display = 'none';
+
+            if (selectedControlMode === 'desktop' && !isMobileDevice) {
+                container.requestPointerLock();
+                document.getElementById('touch-controls').style.display = 'none';
+            } else {
+                document.getElementById('touch-controls').style.display = 'block';
+            }
+        }
+
+        document.addEventListener('pointerlockchange', () => {
+            if (!isMobileDevice && selectedControlMode === 'desktop') {
+                const isLocked = (document.pointerLockElement === container);
+                if (!isLocked) document.getElementById('home-menu').style.display = 'flex';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'o') { openSettings(); return; }
+            if (['1','2','3'].includes(e.key)) {
+                activeMode = parseInt(e.key);
+                document.getElementById('osd-mode-box').innerText = MODES[activeMode].code;
+                return;
+            }
+            const key = e.key.toLowerCase();
+            if (key in keys) keys[key] = true;
+            if (key === 'r') resetDrone();
+        });
+        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
+        document.addEventListener('mousemove', (e) => {
+            if (selectedControlMode === 'mobile' || document.pointerLockElement !== container) return;
+            mouseRoll = e.movementX * 0.0025;
+            mousePitch = -e.movementY * 0.0025;
+        });
+
+        function setupTouchJoystick(padId, knobId, callback) {
+            const pad = document.getElementById(padId);
+            const knob = document.getElementById(knobId);
+            let activeTouchId = null;
+            pad.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (activeTouchId === null) { activeTouchId = e.changedTouches[0].identifier; updateStick(e.changedTouches[0]); }
+            }, { passive: false });
+            pad.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) updateStick(e.changedTouches[i]);
+                }
+            }, { passive: false });
+            const endTouch = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeTouchId) {
+                        activeTouchId = null; knob.style.transform = `translate(-50%, -50%)`; callback(0, 0);
+                    }
+                }
+            };
+            pad.addEventListener('touchend', endTouch);
+            pad.addEventListener('touchcancel', endTouch);
+            function updateStick(touch) {
+                const rect = pad.getBoundingClientRect();
+                let dx = touch.clientX - (rect.left + rect.width / 2);
+                let dy = touch.clientY - (rect.top + rect.height / 2);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 42) { dx = (dx / dist) * 42; dy = (dy / dist) * 42; }
+                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                callback(dx / 42, dy / 42);
+            }
+        }
+
+        setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => { touchLeftValX = x; touchLeftValY = y; });
+        setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => { touchRightValX = x; touchRightValY = y; });
+
+        function resetDrone() {
+            drone.position.set(0, 5, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
+            currentThrottle = 0;
+        }
+
+        const clock = new THREE.Clock();
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
+            
+            frameCount++;
+            const now = clock.getElapsedTime();
+            if (now - lastFpsUpdate >= 0.5) {
+                const currentFps = Math.round(frameCount / (now - lastFpsUpdate));
+                document.getElementById('osd-bottom-right-fps').innerText = `${currentFps} FPS`;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+
+            const modeCfg = MODES[activeMode];
+            let inputYaw = 0;
+            let stickLeftX = 0, stickLeftY = 0, stickRightX = 0, stickRightY = 0;
+
+            if (selectedControlMode === 'mobile' || isMobileDevice) {
+                currentThrottle = (-touchLeftValY + 1) / 2;
+                inputYaw = touchLeftValX * 3.5 * dt;
+                stickLeftX = touchLeftValX; stickLeftY = touchLeftValY;
+
+                const targetPitch = -touchRightValY * modeCfg.maxAngle;
+                const targetRoll = touchRightValX * modeCfg.maxAngle;
+                stickRightX = touchRightValX; stickRightY = touchRightValY;
+
+                if (modeCfg.hasAutoLevel) {
+                    drone.euler.y -= inputYaw;
+                    drone.euler.x = targetPitch;
+                    drone.euler.z = targetRoll;
+                    drone.rotation.setFromEuler(drone.euler);
+                } else {
+                    drone.rotation.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-touchRightValY * 2.0 * dt, -inputYaw, -touchRightValX * 2.0 * dt, 'YXZ'))).normalize();
+                }
+            } else {
+                if (document.pointerLockElement === container) {
+                    if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + 4.0 * dt);
+                    if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - 4.0 * dt);
+                    if (keys.a) inputYaw = -3.5 * dt;
+                    if (keys.d) inputYaw = 3.5 * dt;
+
+                    stickLeftX = inputYaw !== 0 ? (inputYaw > 0 ? 0.8 : -0.8) : 0;
+                    stickLeftY = -(currentThrottle * 2 - 1);
+
+                    stickRightX = mouseRoll / 0.0025 / 15;
+                    stickRightY = -mousePitch / 0.0025 / 15;
+
+                    if (modeCfg.hasAutoLevel) {
+                        drone.euler.y -= inputYaw;
+                        drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
+                        drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
+                        if (Math.abs(mousePitch) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
+                        if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
+                        drone.rotation.setFromEuler(drone.euler);
+                    } else {
+                        drone.rotation.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'))).normalize();
+                    }
+                }
+            }
+
+            // Update RC Stick Overlay Gimbals (Matching video layout)
+            document.getElementById('dot-left').style.transform = `translate(${stickLeftX * 38}px, ${stickLeftY * 38}px)`;
+            document.getElementById('dot-right').style.transform = `translate(${stickRightX * 38}px, ${stickRightY * 38}px)`;
+
+            updateAudioEngine(currentThrottle);
+
+            const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
+            const thrust = localUp.multiplyScalar(currentThrottle * modeCfg.maxThrust);
+            const accel = new THREE.Vector3().addVectors(thrust, new THREE.Vector3(0, -9.81, 0));
+            drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
+            drone.velocity.addScaledVector(accel, dt);
+            drone.position.addScaledVector(drone.velocity, dt);
+
+            if (drone.position.y < 0.3) { drone.position.y = 0.3; drone.velocity.y = 0; }
+
+            droneGroup.position.copy(drone.position);
+            droneGroup.quaternion.copy(drone.rotation);
+            if (currentThrottle > 0.05) propMeshes.forEach(prop => { prop.rotation.y += 0.55; });
+
+            camera.position.copy(drone.position);
+            camera.quaternion.copy(drone.rotation);
+
+            mouseRoll = 0; mousePitch = 0;
+
+            const speedMs = drone.velocity.length().toFixed(1);
+            const heightVal = drone.position.y.toFixed(1);
+            const distVal = Math.sqrt(drone.position.x * drone.position.x + drone.position.z * drone.position.z).toFixed(1);
+
+            document.getElementById('tele-speed').innerText = `${speedMs}m/s`;
+            document.getElementById('tele-height').innerHTML = `<span>H</span> ${heightVal}m`;
+            document.getElementById('tele-dist').innerHTML = `<span>D</span> ${distVal}m`;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
