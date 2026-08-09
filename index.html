@@ -3,116 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DJI Goggles 3 - FPV Stadium Simulator</title>
+    <title>DJI Goggles 3 - FPV City Simulator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         canvas { width: 100%; height: 100%; display: block; }
         
-        /* DJI Goggles 3 OSD Overlay Style */
+        /* DJI Goggles 3 OSD Overlay Style matching reference screenshots */
         #osd-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none; color: #ffffff; font-family: monospace;
             text-shadow: 0 1px 3px rgba(0,0,0,0.9);
         }
 
-        /* Top Bar Icons */
+        /* Top Bar Icons (Camera switch, Return home icon, Pause/Settings) */
         #osd-top-bar {
-            position: absolute; top: 20px; right: 25px;
-            display: flex; align-items: center; gap: 14px; z-index: 7; pointer-events: auto;
+            position: absolute; top: 15px; right: 25px;
+            display: flex; align-items: center; gap: 12px; z-index: 7; pointer-events: auto;
         }
         .osd-icon-btn {
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.25);
-            color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; font-size: 14px; cursor: pointer;
+            background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; width: 38px; height: 38px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 15px; cursor: pointer;
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
             touch-action: manipulation;
         }
         .osd-icon-btn:hover { background: rgba(255,255,255,0.2); }
 
-        /* Right Side Vertical Gimbal Angle Slider */
+        /* Right Side Vertical Gimbal Angle & Horizon Arc HUD */
         #osd-gimbal-slider {
-            position: absolute; right: 25px; top: 80px; bottom: 80px; width: 24px;
+            position: absolute; right: 25px; top: 80px; bottom: 80px; width: 30px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             pointer-events: none; z-index: 7;
         }
         .slider-track {
-            position: relative; width: 4px; height: 100%; background: rgba(255,255,255,0.25);
+            position: relative; width: 3px; height: 100%; background: rgba(255,255,255,0.3);
             border-radius: 2px; display: flex; justify-content: center;
         }
         .slider-thumb {
-            position: absolute; top: 40%; width: 14px; height: 14px; background: #ffffff;
-            border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.6); transform: translateX(-5px);
+            position: absolute; top: 50%; width: 12px; height: 12px; background: #ffffff;
+            border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.6); transform: translateX(-4.5px);
         }
         .slider-label {
-            position: absolute; right: 16px; font-size: 11px; font-weight: bold; color: #fff;
-            background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 3px;
+            position: absolute; right: 18px; font-size: 11px; font-weight: bold; color: #fff;
+            background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 3px; font-style: italic;
         }
 
-        /* Bottom Left: Avata 2 Style Italic Mode Box + Telemetry pills */
+        /* Horizon Pitch Arc Overlay (Right Center looking like DJI Goggles 3) */
+        #horizon-arc-hud {
+            position: absolute; right: 65px; top: 40%; width: 140px; height: 140px;
+            transform: translateY(-50%); pointer-events: none; display: flex; align-items: center; justify-content: center;
+        }
+        .arc-ring {
+            width: 120px; height: 120px; border: 2px solid rgba(255,255,255,0.2); border-radius: 50%;
+            position: relative; display: flex; align-items: center; justify-content: center;
+        }
+        .arc-indicator {
+            position: absolute; top: 15px; width: 0; height: 0; 
+            border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid #ffcc00;
+        }
+        .arc-line {
+            width: 100px; height: 1px; background: rgba(255,255,255,0.6); position: relative;
+        }
+        .arc-degree {
+            position: absolute; right: 5px; top: -14px; font-size: 10px; font-weight: bold; color: #fff; font-style: italic;
+        }
+
+        /* Bottom Left: Avata 2 Style Italic Mode Box + Telemetry pills with italicized numbers */
         #osd-bottom-left {
             position: absolute; bottom: 25px; left: 30px;
-            display: flex; align-items: center; gap: 10px; pointer-events: auto;
+            display: flex; align-items: center; gap: 8px; pointer-events: auto;
         }
         #osd-mode-box {
-            background: #ffffff; color: #000000; font-weight: 900; font-size: 22px;
+            background: #ffffff; color: #000000; font-weight: 900; font-size: 24px;
             padding: 2px 12px; border-radius: 4px; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-            font-style: italic; cursor: pointer; text-align: center; min-width: 42px;
+            font-style: italic; cursor: pointer; text-align: center; min-width: 44px;
             touch-action: manipulation;
         }
         #osd-telemetry-pills {
-            display: flex; align-items: center; background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; background: rgba(0,0,0,0.45);
             border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; overflow: hidden;
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
         }
         .tele-pill {
-            padding: 6px 12px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px;
+            padding: 6px 10px; font-size: 13px; font-weight: bold; font-style: italic; display: flex; align-items: center; gap: 4px;
             border-right: 1px solid rgba(255,255,255,0.15); color: #fff;
         }
         .tele-pill:last-child { border-right: none; }
-        .tele-pill span { opacity: 0.7; font-weight: normal; }
+        .tele-pill span { opacity: 0.7; font-weight: normal; font-style: normal; }
 
         /* Bottom Center Action Box */
         #osd-bottom-center {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-            display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.4);
+            display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.35);
             border: 1px solid rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 8px; 
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
         }
         .osd-ctrl-box {
-            background: rgba(255,255,255,0.9); color: #000; width: 34px; height: 34px;
+            background: rgba(255,255,255,0.85); color: #000; width: 34px; height: 34px;
             border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;
         }
 
-        /* Bottom Right FPS */
+        /* Bottom Right FPS & Indicator Icons */
         #osd-bottom-right-fps {
-            position: absolute; bottom: 30px; right: 70px; font-size: 13px; font-weight: bold; opacity: 0.9;
+            position: absolute; bottom: 30px; right: 70px; font-size: 13px; font-weight: bold; font-style: italic; opacity: 0.9;
         }
 
-        /* RC Stick Live Visualizers */
+        /* RC Stick Live Visualizers (Bottom center, slightly shifted up, dynamic styling) */
         .rc-stick-display {
-            position: absolute; bottom: 20px; width: 110px; height: 110px;
-            background: rgba(0,0,0,0.25); border: 1.5px solid rgba(255,255,255,0.35);
+            position: absolute; bottom: 75px; width: 90px; height: 90px;
+            background: rgba(0,0,0,0.2); border: 1.5px solid rgba(255,255,255,0.3);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            pointer-events: none; z-index: 5;
+            pointer-events: none; z-index: 5; transition: border-radius 0.3s ease;
         }
-        #rc-left { left: 35px; }
-        #rc-right { right: 75px; }
+        /* When in RC 3 FPV tutorial mode, make sticks round/circular; after completion, morph to square/kotak */
+        .rc-stick-display.shape-circle { border-radius: 50%; }
+        .rc-stick-display.shape-kotak { border-radius: 12px; border-color: rgba(0,255,204,0.6); background: rgba(0,0,0,0.35); }
+
+        #rc-left { left: calc(50% - 96px); }
+        #rc-right { left: calc(50% + 6px); }
         .rc-gimbal-dot {
-            width: 18px; height: 18px; background: #ffffff; border-radius: 50%;
+            width: 14px; height: 14px; background: #ffffff; border-radius: 50%;
             box-shadow: 0 0 6px rgba(0,0,0,0.8); position: absolute;
             transform: translate(0px, 0px); transition: transform 0.05s linear;
         }
 
-        /* Touch Joysticks (Mobile Control Overlay optimized for iOS/iPhone) */
+        /* TUTORIAL OVERLAY (DJI Avata 2 Motor Start Tutorial) */
+        #tutorial-overlay {
+            position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(255, 204, 0, 0.6);
+            padding: 12px 24px; border-radius: 10px; text-align: center; z-index: 15;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            transition: opacity 0.5s ease;
+        }
+        #tutorial-title { font-size: 13px; color: #ffcc00; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+        #tutorial-desc { font-size: 14px; color: #fff; font-weight: bold; font-style: italic; }
+
+        /* Touch Joysticks (Mobile Control Overlay) */
         #touch-controls {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
             z-index: 9; pointer-events: none; display: none;
         }
         .touch-pad {
             position: absolute; bottom: 20px; width: 140px; height: 140px;
-            background: rgba(255, 255, 255, 0.04); border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.03); border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%; pointer-events: auto; touch-action: none;
             -webkit-touch-callout: none;
         }
@@ -120,16 +156,16 @@
         #touch-right-pad { right: 70px; }
         .touch-knob {
             position: absolute; top: 50%; left: 50%; width: 56px; height: 56px;
-            background: rgba(255, 255, 255, 0.5); border-radius: 50%;
+            background: rgba(255, 255, 255, 0.45); border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none;
         }
 
         /* HOME / SETTINGS MENU MODAL */
         #home-menu {
-            position: absolute; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.92);
+            position: absolute; width: 100%; height: 100%; background: rgba(10, 15, 25, 0.94);
             color: #ffffff; display: flex; flex-direction: column; justify-content: center;
             align-items: center; text-align: center; z-index: 20; 
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             touch-action: manipulation;
         }
         .menu-card {
@@ -174,7 +210,7 @@
     <div id="home-menu">
         <div class="menu-card">
             <h1>DJI Goggles 3 Simulator</h1>
-            <div class="subtitle">FPV Stadium Drone Experience</div>
+            <div class="subtitle">FPV Realistic City Experience</div>
 
             <div class="menu-section">
                 <label>Control Mode</label>
@@ -197,7 +233,7 @@
             <button class="start-btn" type="button" onclick="launchSimulator()">START FLIGHT</button>
 
             <div class="controls-hint" id="hint-text">
-                <b>Controls:</b> Tap the mode box ($N$, $S$, $M$) on screen to switch flight modes. Fully optimized for iPhone & Mobile touch support.
+                <b>Tutorial:</b> Complete the DJI Avata 2 motor start gesture (both sticks inward-down) to arm motors.
             </div>
         </div>
     </div>
@@ -217,6 +253,20 @@
                 </div>
             </div>
 
+            <!-- Horizon Pitch Arc HUD -->
+            <div id="horizon-arc-hud">
+                <div class="arc-ring">
+                    <div class="arc-indicator"></div>
+                    <div class="arc-line"><span class="arc-degree">0°</span></div>
+                </div>
+            </div>
+
+            <!-- Tutorial Banner for Motor Start -->
+            <div id="tutorial-overlay">
+                <div id="tutorial-title">DJI Avata 2 Tutorial (RC 3 FPV)</div>
+                <div id="tutorial-desc">Move both sticks inward & down to start motors</div>
+            </div>
+
             <div id="osd-bottom-left">
                 <div id="osd-mode-box" onclick="cycleFlightMode()" title="Click to change mode">S</div>
                 <div id="osd-telemetry-pills">
@@ -233,11 +283,11 @@
 
             <div id="osd-bottom-right-fps">61 FPS</div>
 
-            <!-- RC Stick Live Visualizers -->
-            <div class="rc-stick-display" id="rc-left">
+            <!-- RC Stick Live Visualizers (Centered, slightly upper, changing shape dynamically) -->
+            <div class="rc-stick-display shape-circle" id="rc-left">
                 <div class="rc-gimbal-dot" id="dot-left"></div>
             </div>
-            <div class="rc-stick-display" id="rc-right">
+            <div class="rc-stick-display shape-circle" id="rc-right">
                 <div class="rc-gimbal-dot" id="dot-right"></div>
             </div>
         </div>
@@ -256,6 +306,8 @@
     <script>
         let selectedControlMode = 'mobile';
         let selectedGraphics = 'medium';
+        let motorsStarted = false;
+        let tutorialCompleted = false;
 
         function setControlMode(mode) {
             selectedControlMode = mode;
@@ -319,7 +371,7 @@
         }
 
         function updateAudioEngine(throttle) {
-            if (!isAudioInitialized || !audioCtx) return;
+            if (!isAudioInitialized || !audioCtx || !motorsStarted) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
             motorGain.gain.setTargetAtTime(0.015 + throttle * 0.12, audioCtx.currentTime, 0.05);
             motorOsc.frequency.setTargetAtTime(55 + throttle * 130, audioCtx.currentTime, 0.05);
@@ -328,9 +380,10 @@
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x90b5ff);
-        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0012);
+        scene.background = new THREE.Color(0x8cb4ff);
+        scene.fog = new THREE.FogExp2(0xb2d0ff, 0.001);
 
+        // First-person camera setup (zero obstruction from drone model)
         const camera = new THREE.PerspectiveCamera(110, window.innerWidth / window.innerHeight, 0.1, 3000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -342,25 +395,25 @@
                 case 'low':
                     renderer.setPixelRatio(1);
                     renderer.shadowMap.enabled = false;
-                    scene.fog.density = 0.002;
+                    scene.fog.density = 0.0018;
                     break;
                 case 'medium':
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    scene.fog.density = 0.0012;
+                    scene.fog.density = 0.001;
                     break;
                 case 'high':
                     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    scene.fog.density = 0.0008;
+                    scene.fog.density = 0.0007;
                     break;
                 case 'ultra':
                     renderer.setPixelRatio(window.devicePixelRatio);
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                    scene.fog.density = 0.0005;
+                    scene.fog.density = 0.0004;
                     break;
             }
         }
@@ -372,76 +425,40 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const sunLight = new THREE.DirectionalLight(0xfffae0, 0.9);
-        sunLight.position.set(150, 350, 100);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const sunLight = new THREE.DirectionalLight(0xfffae0, 1.0);
+        sunLight.position.set(200, 400, 200);
         sunLight.castShadow = true;
         scene.add(sunLight);
 
-        const turfCanvas = document.createElement('canvas');
-        turfCanvas.width = 512; turfCanvas.height = 512;
-        const ctxTurf = turfCanvas.getContext('2d');
-        ctxTurf.fillStyle = '#417c34'; ctxTurf.fillRect(0, 0, 512, 512);
-        const turfTex = new THREE.CanvasTexture(turfCanvas);
-        turfTex.wrapS = THREE.RepeatWrapping; turfTex.wrapT = THREE.RepeatWrapping; turfTex.repeat.set(1, 2);
+        // Realistic City Environment Map generation (matching reference look with modern skyscrapers and roads)
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.8 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.1;
+        scene.add(ground);
 
-        const pitch = new THREE.Mesh(new THREE.PlaneGeometry(90, 140), new THREE.MeshStandardMaterial({ map: turfTex, roughness: 0.8 }));
-        pitch.rotation.x = -Math.PI / 2;
-        scene.add(pitch);
+        // Procedural realistic buildings and futuristic towers
+        const bldgMat1 = new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.2, metalness: 0.6 });
+        const bldgMat2 = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.3, metalness: 0.4 });
+        const glassMat = new THREE.MeshStandardMaterial({ color: 0x1976d2, roughness: 0.1, metalness: 0.9 });
 
-        const track = new THREE.Mesh(new THREE.RingGeometry(48, 70, 48), new THREE.MeshStandardMaterial({ color: 0x9e3f3f, roughness: 0.7 }));
-        track.rotation.x = -Math.PI / 2;
-        track.position.y = 0.04;
-        scene.add(track);
-
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.9 }));
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -0.1;
-        scene.add(floor);
-
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x555c66, roughness: 0.5 });
-        const trussMat = new THREE.MeshStandardMaterial({ color: 0x1f242b, metalness: 0.8, roughness: 0.2 });
-
-        function createStadiumStand(x, z, rotY, w, d) {
-            const standGroup = new THREE.Group();
-            const steps = 12;
-            for(let i=0; i<steps; i++) {
-                const box = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d / steps), wallMat);
-                box.position.set(0, i * 1.6, (i - steps/2) * (d / steps));
-                standGroup.add(box);
-            }
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 12, 1.8, d + 18), trussMat);
-            roof.position.set(0, steps * 1.6 + 6, 0);
-            roof.rotation.x = 0.22;
-            standGroup.add(roof);
-            standGroup.position.set(x, 0, z);
-            standGroup.rotation.y = rotY;
-            scene.add(standGroup);
+        function createSkyscraper(x, z, w, h, d, mat) {
+            const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+            bldg.position.set(x, h / 2, z);
+            bldg.castShadow = true;
+            bldg.receiveShadow = true;
+            scene.add(bldg);
         }
-        createStadiumStand(0, -80, 0, 120, 50);
-        createStadiumStand(0, 80, Math.PI, 120, 50);
-        createStadiumStand(-65, 0, Math.PI / 2, 120, 50);
-        createStadiumStand(65, 0, -Math.PI / 2, 120, 50);
 
-        // Drone mesh is hidden from FPV camera view (camera is mounted cleanly inside/ahead of props)
-        const droneGroup = new THREE.Group();
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.3 });
-        const propMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.1 });
-        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
-        fuselage.position.set(0, -0.4, 0); // Offset below camera view
-        droneGroup.add(fuselage);
-
-        const propMeshes = [];
-        [{ x: 0.95, z: 0.85 }, { x: -0.95, z: 0.85 }, { x: 0.95, z: -0.85 }, { x: -0.95, z: -0.85 }].forEach(pos => {
-            const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.4, 16, 1, true), bodyMat);
-            duct.position.set(pos.x, -0.4, pos.z);
-            droneGroup.add(duct);
-            const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.18), propMat);
-            prop.position.set(pos.x, -0.4, pos.z);
-            droneGroup.add(prop);
-            propMeshes.push(prop);
-        });
-        scene.add(droneGroup);
+        // Generate city grid
+        for (let x = -300; x <= 300; x += 100) {
+            for (let z = -300; z <= 300; z += 100) {
+                if (Math.abs(x) < 40 && Math.abs(z) < 40) continue; // Leave central spawn clear
+                const height = 60 + Math.abs(Math.sin(x * z) * 180);
+                createSkyscraper(x + (Math.random() - 0.5) * 20, z + (Math.random() - 0.5) * 20, 50, height, 50, Math.random() > 0.5 ? bldgMat1 : bldgMat2);
+            }
+        }
 
         const drone = {
             position: new THREE.Vector3(0, 5, 45),
@@ -455,7 +472,7 @@
             2: { code: "S", maxThrust: 21.0, drag: 0.025, maxAngle: 0.75 },
             3: { code: "M", maxThrust: 25.5, drag: 0.020, maxAngle: Math.PI }
         };
-        let activeMode = 2; // Default S mode
+        let activeMode = 2;
         let touchLeftValX = 0, touchLeftValY = 0, touchRightValX = 0, touchRightValY = 0;
         let currentThrottle = 0;
 
@@ -522,6 +539,13 @@
         function resetDrone() {
             drone.position.set(0, 5, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0;
+            motorsStarted = false;
+            tutorialCompleted = false;
+            const tut = document.getElementById('tutorial-overlay');
+            tut.style.opacity = '1';
+            tut.style.display = 'block';
+            document.getElementById('rc-left').className = 'rc-stick-display shape-circle';
+            document.getElementById('rc-right').className = 'rc-stick-display shape-circle';
         }
 
         const clock = new THREE.Clock();
@@ -542,25 +566,38 @@
             }
 
             const modeCfg = MODES[activeMode];
-            currentThrottle = (-touchLeftValY + 1) / 2;
-            let inputYaw = touchLeftValX * 3.5 * dt;
+            
+            // DJI Avata 2 Motor Start Gesture Check: both sticks pulled inward and down (Left X > 0.6, Left Y > 0.6 AND Right X < -0.6, Right Y > 0.6)
+            if (!motorsStarted) {
+                if (touchLeftValX > 0.5 && touchLeftValY > 0.5 && touchRightValX < -0.5 && touchRightValY > 0.5) {
+                    motorsStarted = true;
+                    tutorialCompleted = true;
+                    const tut = document.getElementById('tutorial-overlay');
+                    tut.style.opacity = '0';
+                    setTimeout(() => { tut.style.display = 'none'; }, 500);
+                    // Morph RC stick overlays to normal square / 'kotak' shape
+                    document.getElementById('rc-left').className = 'rc-stick-display shape-kotak';
+                    document.getElementById('rc-right').className = 'rc-stick-display shape-kotak';
+                }
+            }
 
-            const targetPitch = -touchRightValY * modeCfg.maxAngle;
-            const targetRoll = touchRightValX * modeCfg.maxAngle;
+            currentThrottle = motorsStarted ? (-touchLeftValY + 1) / 2 : 0;
+            let inputYaw = motorsStarted ? touchLeftValX * 3.5 * dt : 0;
 
-            document.getElementById('dot-left').style.transform = `translate(${touchLeftValX * 38}px, ${touchLeftValY * 38}px)`;
-            document.getElementById('dot-right').style.transform = `translate(${touchRightValX * 38}px, ${touchRightValY * 38}px)`;
+            const targetPitch = motorsStarted ? -touchRightValY * modeCfg.maxAngle : 0;
+            const targetRoll = motorsStarted ? touchRightValX * modeCfg.maxAngle : 0;
+
+            document.getElementById('dot-left').style.transform = `translate(${touchLeftValX * 28}px, ${touchLeftValY * 28}px)`;
+            document.getElementById('dot-right').style.transform = `translate(${touchRightValX * 28}px, ${touchRightValY * 28}px)`;
 
             updateAudioEngine(currentThrottle);
 
             drone.euler.y -= inputYaw;
 
-            if (activeMode === 3) {
-                // Manual (Acroy) Mode: full rate control, keeps current attitude if sticks are centered
+            if (activeMode === 3 && motorsStarted) {
                 drone.euler.x += targetPitch * dt * 3.0;
                 drone.euler.z += targetRoll * dt * 3.0;
             } else {
-                // Normal & Sport Mode: auto-leveling back when sticks are released
                 drone.euler.x = targetPitch;
                 drone.euler.z = targetRoll;
             }
@@ -576,10 +613,7 @@
 
             if (drone.position.y < 0.3) { drone.position.y = 0.3; drone.velocity.y = 0; }
 
-            droneGroup.position.copy(drone.position);
-            droneGroup.quaternion.copy(drone.rotation);
-            if (currentThrottle > 0.05) propMeshes.forEach(prop => { prop.rotation.y += 0.55; });
-
+            // First-person camera positioning with zero obstruction (drone model completely removed from camera view)
             camera.position.copy(drone.position);
             camera.quaternion.copy(drone.rotation);
 
