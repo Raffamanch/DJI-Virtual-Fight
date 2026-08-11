@@ -203,7 +203,7 @@
                     <b>[ W / S ]</b> : THROTTLE UP / DOWN (Stays in position / No spring-back)<br>
                     <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
-                    <span style="color: #00ffcc;">✓ Left Stick Throttle Sticky Position Logic Active</span>
+                    <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
                 </p>
             </div>
         </div>
@@ -218,10 +218,10 @@
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle Up/Down (Stays where you leave it) & Yaw<br>
+                <b>[ Left Joystick ]</b> : Throttle Up/Down (Starts at bottom / Stays where left)<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll (Returns to center automatically)<br>
                 <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Left Stick Throttle Sticky Position Logic Active</span>
+                <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
             `;
         }
 
@@ -489,14 +489,14 @@
         let mousePitch = 0, mouseRoll = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
-        let touchLeftValX = 0, touchLeftValY = 0;
+        let touchLeftValX = 0, touchLeftValY = 1.0; // Start at bottom (+1.0 in screen space down)
         let touchRightValX = 0, touchRightValY = 0;
 
-        // Sticky throttle tracking for W/S keys or left stick vertical
-        let stickyThrottleValue = 0.0; // 0.0 (bottom) to 1.0 (top)
+        // Sticky throttle tracking: initialize at 0.0 (bottom)
+        let stickyThrottleValue = 0.0; 
 
         const MOUSE_SENSITIVITY = 0.0025; 
-        const THROTTLE_CHANGE_SPEED = 0.8; // Speed at which W/S changes throttle continuously
+        const THROTTLE_CHANGE_SPEED = 0.8; 
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
         
@@ -632,7 +632,6 @@
                             knob.style.transform = `translate(-50%, -50%)`;
                             callback(0, 0);
                         } else {
-                            // Only reset X back to center on release, keep Y where it was left
                             callback(0, null);
                         }
                     }
@@ -660,12 +659,16 @@
         }
 
         if (isMobile) {
-            // Left pad: Sticky Y for throttle up/down (stays where left)
+            // Initialize left joystick knob visually at the bottom position on load/reset
+            const leftKnob = document.getElementById('touch-left-knob');
+            if (leftKnob) {
+                leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
+            }
+
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
                 touchLeftValX = x;
                 if (y !== null) touchLeftValY = y;
             }, true);
-            // Right pad: Pitch & Roll (returns to center automatically)
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
                 touchRightValX = x;
                 touchRightValY = y;
@@ -690,9 +693,17 @@
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0; stickyThrottleValue = 0; tumbleRotationVelocity.set(0, 0, 0);
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
-            touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
+            
+            touchLeftValX = 0; 
+            touchLeftValY = 1.0; // Reset left stick vertical to bottom
+            touchRightValX = 0; touchRightValY = 0;
+
             const leftKnob = document.getElementById('touch-left-knob');
-            if(leftKnob) leftKnob.style.transform = 'translate(-50%, -50%)';
+            if(leftKnob) leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))'; // visually at bottom
+            
+            const rightKnob = document.getElementById('touch-right-knob');
+            if(rightKnob) rightKnob.style.transform = 'translate(-50%, -50%)';
+
             handleResize();
         }
 
@@ -744,12 +755,9 @@
                 stickyThrottleValue = 0;
             } else {
                 if (isMobile) {
-                    // Left stick vertical (touchLeftValY ranges from -1 (up) to 1 (down))
-                    // Throttle stays at whatever position the user leaves the stick at
                     stickyThrottleValue = THREE.MathUtils.clamp((-touchLeftValY + 1) / 2, 0, 1);
                     currentThrottle = stickyThrottleValue;
                 } else {
-                    // W/S keys throttle up/down and stays in position when released
                     if (keys.w) stickyThrottleValue = Math.min(1.0, stickyThrottleValue + THROTTLE_CHANGE_SPEED * dt);
                     if (keys.s) stickyThrottleValue = Math.max(0.0, stickyThrottleValue - THROTTLE_CHANGE_SPEED * dt);
                     currentThrottle = stickyThrottleValue;
