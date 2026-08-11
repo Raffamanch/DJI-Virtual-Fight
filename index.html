@@ -200,10 +200,10 @@
                 <h1>DJI Avata Simulator</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE | <b>[ A / D ]</b> : YAW<br>
-                    <b>[ Move Mouse ]</b> : PITCH & ROLL | <b>[ R ]</b> : Reset Drone<br><br>
-                    <b>[ C ]</b> : Toggle FPV / TPV View | <b>[ 1, 2, 3, 4 ]</b> : Switch Flight Mode<br><br>
-                    <span style="color: #00ffcc;">✓ Clean Motor Icon & Fullscreen Toggle Active</span>
+                    <b>[ W / S ]</b> : THROTTLE (Manual/Acro: Keep throttle down to arm)<br>
+                    <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
+                    <b>[ Move Mouse ]</b> : PITCH & ROLL (Sticks stick in Manual/Acro)<br><br>
+                    <span style="color: #00ffcc;">✓ Real Manual/Acro Throttle & Stick Logic Active</span>
                 </p>
             </div>
         </div>
@@ -218,10 +218,10 @@
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
-                <b>[ Right Joystick ]</b> : Pitch & Roll<br>
+                <b>[ Left Joystick ]</b> : Throttle (Down to arm) & Yaw<br>
+                <b>[ Right Joystick ]</b> : Pitch & Roll (Sticks lock in place)<br>
                 <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Auto-Fit OSD, 0° Tilt & Touch Controls Active</span>
+                <span style="color: #00ffcc;">✓ Real Manual/Acro Stick Logic Active</span>
             `;
         }
 
@@ -488,6 +488,10 @@
         let keys = { w: false, s: false, a: false, d: false };
         let mouseRoll = 0, mousePitch = 0;
         let rawMouseX = 0, rawMouseY = 0;
+        
+        // Persistent stick values for Manual/Acro (stays when mouse/touch stops)
+        let manualPitch = 0;
+        let manualRoll = 0;
 
         let touchLeftValX = 0, touchLeftValY = 0;
         let touchRightValX = 0, touchRightValY = 0;
@@ -500,11 +504,19 @@
         const CAMERA_UPTILT = 0 * (Math.PI / 180);
         let currentThrottle = 0;
 
-        // Motor Arm/Disarm Toggle Handler (Normal color style, no text)
+        // Motor Arm/Disarm Toggle Handler with real check (must be throttle down in Manual/Acro)
         const motorBtn = document.getElementById('btn-motor-toggle');
         function toggleMotors() {
-            isArmed = !isArmed;
             if (!isArmed) {
+                // Check if Manual or Acro mode requires throttle down to arm
+                const modeCfg = MODES[activeMode];
+                if (!modeCfg.hasAutoLevel && currentThrottle > 0.05) {
+                    // Cannot arm if throttle is up in Manual/Acro!
+                    return;
+                }
+                isArmed = true;
+            } else {
+                isArmed = false;
                 currentThrottle = 0;
             }
         }
@@ -513,7 +525,7 @@
             toggleMotors();
         });
 
-        // Fullscreen Toggle Handler with fallback simulation
+        // Fullscreen Toggle Handler
         const fullscreenBtn = document.getElementById('btn-fullscreen-toggle');
         fullscreenBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -591,7 +603,7 @@
             updateMobileModeButtonText();
         });
 
-        function setupTouchJoystick(padId, knobId, callback) {
+        function setupTouchJoystick(padId, knobId, callback, isSticky = false) {
             const pad = document.getElementById(padId);
             const knob = document.getElementById(knobId);
             const maxDist = 45;
@@ -620,8 +632,10 @@
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     if (e.changedTouches[i].identifier === activeTouchId) {
                         activeTouchId = null;
-                        knob.style.transform = `translate(-50%, -50%)`;
-                        callback(0, 0);
+                        if (!isSticky) {
+                            knob.style.transform = `translate(-50%, -50%)`;
+                            callback(0, 0);
+                        }
                     }
                 }
             }
@@ -647,14 +661,16 @@
         }
 
         if (isMobile) {
+            // Left pad: throttle is sticky in manual/acro if desired, or standard touch
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
                 touchLeftValX = x;
                 touchLeftValY = y;
-            });
+            }, false);
+            // Right pad: sticky in manual/acro mode (stays in place when you let go)
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
                 touchRightValX = x;
                 touchRightValY = y;
-            });
+            }, true);
         }
 
         document.getElementById('btn-switch-view').addEventListener('click', (e) => {
@@ -674,6 +690,7 @@
         function resetDrone() {
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
+            manualPitch = 0; manualRoll = 0;
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
             handleResize();
@@ -734,16 +751,20 @@
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
-                const targetPitch = -touchRightValY * modeCfg.maxAngle;
-                const targetRoll = touchRightValX * modeCfg.maxAngle;
-
+                
                 if (modeCfg.hasAutoLevel) {
+                    const targetPitch = -touchRightValY * modeCfg.maxAngle;
+                    const targetRoll = touchRightValX * modeCfg.maxAngle;
                     drone.euler.y -= inputYaw;
                     drone.euler.x = targetPitch;
                     drone.euler.z = targetRoll;
                     drone.rotation.setFromEuler(drone.euler);
                 } else {
-                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-touchRightValY * 2.0 * dt, -inputYaw, -touchRightValX * 2.0 * dt, 'YXZ'));
+                    // Manual/Acro: stick stays in place (doesn't snap back)
+                    manualPitch = -touchRightValY * 2.5;
+                    manualRoll = touchRightValX * 2.5;
+                    drone.euler.y -= inputYaw;
+                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(manualPitch * dt, -inputYaw, manualRoll * dt, 'YXZ'));
                     drone.rotation.multiply(deltaRotation).normalize();
                 }
             } else {
@@ -759,7 +780,14 @@
                         if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
                         drone.rotation.setFromEuler(drone.euler);
                     } else {
-                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(mousePitch, -inputYaw, -mouseRoll, 'YXZ'));
+                        // Manual / Acro: Mouse acts as sticks that lock in place!
+                        manualPitch += mousePitch * 2.0;
+                        manualRoll -= mouseRoll * 2.0;
+                        manualPitch = Math.max(-2.5, Math.min(2.5, manualPitch));
+                        manualRoll = Math.max(-2.5, Math.min(2.5, manualRoll));
+
+                        drone.euler.y -= inputYaw;
+                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(manualPitch * dt, -inputYaw, manualRoll * dt, 'YXZ'));
                         drone.rotation.multiply(deltaRotation).normalize();
                     }
                 } else {
@@ -846,13 +874,13 @@
             } else {
                 leftY = (currentThrottle - 0.5) * -55; 
                 leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
-                rightX = rawMouseX;
-                rightY = rawMouseY;
+                rightX = modeCfg.hasAutoLevel ? rawMouseX : (manualPitch * 10);
+                rightY = modeCfg.hasAutoLevel ? rawMouseY : (manualRoll * 10);
             }
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
-            renderer.render(scene, camera);
+            renderer.format = renderer.render(scene, camera);
         }
 
         animate();
