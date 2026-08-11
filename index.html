@@ -200,10 +200,10 @@
                 <h1>DJI Avata Simulator</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : PITCH (Stays in position / No spring-back)<br>
+                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Left Stick Vertical)<br>
                     <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
-                    <b>[ Move Mouse ]</b> : ROLL & THROTTLE (Right Stick mode)<br><br>
-                    <span style="color: #00ffcc;">✓ Left Stick Pitch Sticky/Locked Position Logic Active</span>
+                    <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
+                    <span style="color: #00ffcc;">✓ Standard Left Stick Throttle & Right Stick Pitch/Roll Logic Active</span>
                 </p>
             </div>
         </div>
@@ -218,10 +218,10 @@
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Pitch (Stays where you leave it) & Yaw<br>
-                <b>[ Right Joystick ]</b> : Roll & Throttle<br>
+                <b>[ Left Joystick ]</b> : Throttle (Up/Down) & Yaw (Left/Right)<br>
+                <b>[ Right Joystick ]</b> : Pitch & Roll (Returns to center automatically)<br>
                 <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Left Stick Pitch Sticky/Locked Position Logic Active</span>
+                <span style="color: #00ffcc;">✓ Standard Left Stick Throttle & Right Stick Pitch/Roll Logic Active</span>
             `;
         }
 
@@ -486,14 +486,11 @@
         let isSpawnedSafe = true; 
 
         let keys = { w: false, s: false, a: false, d: false };
-        let mouseRoll = 0, mouseThrottle = 0;
+        let mousePitch = 0, mouseRoll = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
         let touchLeftValX = 0, touchLeftValY = 0;
         let touchRightValX = 0, touchRightValY = 0;
-
-        // Sticky Left Stick Pitch variable (stays in place when released)
-        let stickyPitchValue = 0;
 
         const MOUSE_SENSITIVITY = 0.0025; 
         const THROTTLE_SPEED = 4.0;
@@ -576,8 +573,8 @@
         document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
+            mousePitch = -e.movementY * MOUSE_SENSITIVITY;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
-            mouseThrottle = -e.movementY * MOUSE_SENSITIVITY;
             
             rawMouseX += e.movementX * 0.4;
             rawMouseY += e.movementY * 0.4;
@@ -650,23 +647,16 @@
                     dy = (dy / dist) * maxDist;
                 }
 
-                if (!isSticky) {
-                    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                } else {
-                    // For sticky left pad, only snap X back or keep Y where user left it
-                    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                }
+                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 callback(dx / maxDist, dy / maxDist);
             }
         }
 
         if (isMobile) {
-            // Left pad set to STICKY Y (stays where left)
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
                 touchLeftValX = x;
-                touchLeftValY = y; // Stays at current value when released
-            }, true);
-            // Right pad: Roll & Throttle (returns to center automatically)
+                touchLeftValY = y;
+            }, false);
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
                 touchRightValX = x;
                 touchRightValY = y;
@@ -689,11 +679,9 @@
 
         function resetDrone() {
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
-            currentThrottle = 0; stickyPitchValue = 0; tumbleRotationVelocity.set(0, 0, 0);
+            currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
-            const leftKnob = document.getElementById('touch-left-knob');
-            if(leftKnob) leftKnob.style.transform = 'translate(-50%, -50%)';
             handleResize();
         }
 
@@ -744,20 +732,18 @@
                 currentThrottle = 0;
             } else {
                 if (isMobile) {
-                    // Mobile right pad vertical can be used if needed
+                    const targetThrottlePad = (-touchLeftValY + 1) / 2;
+                    currentThrottle = targetThrottlePad;
+                } else {
+                    if (keys.w) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
+                    if (keys.s) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
                 }
             }
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
-                
-                // Sticky pitch: touchLeftValY stays at the last position when released
-                stickyPitchValue = -touchLeftValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
-                targetPitch = stickyPitchValue;
-
+                targetPitch = -touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
                 targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
-                const targetThrottlePad = (-touchRightValY + 1) / 2;
-                currentThrottle = targetThrottlePad;
 
                 drone.euler.y -= inputYaw;
                 if (modeCfg.hasAutoLevel) {
@@ -775,17 +761,14 @@
 
                     drone.euler.y -= inputYaw;
 
-                    // W/S keys control Pitch and STAYS in position (Sticky / No Spring-back)
-                    if (keys.w) stickyPitchValue = -modeCfg.maxAngle; // Pitch forward and stay
-                    if (keys.s) stickyPitchValue = modeCfg.maxAngle;  // Pitch backward and stay
-
                     if (modeCfg.hasAutoLevel) {
-                        drone.euler.x = stickyPitchValue;
+                        drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
                         drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
+                        if (Math.abs(mousePitch) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
                         if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
                         drone.rotation.setFromEuler(drone.euler);
                     } else {
-                        const pitchRate = stickyPitchValue * 30.0;
+                        const pitchRate = -mousePitch * 30.0;
                         const rollRate = -mouseRoll * 30.0;
                         const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchRate * dt, -inputYaw, rollRate * dt, 'YXZ'));
                         drone.rotation.multiply(deltaRotation).normalize();
@@ -860,7 +843,7 @@
                 camera.lookAt(drone.position);
             }
 
-            mouseRoll = 0; mouseThrottle = 0;
+            mousePitch = 0; mouseRoll = 0;
 
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
@@ -872,7 +855,7 @@
                 rightX = touchRightValX * 35;
                 rightY = touchRightValY * 35;
             } else {
-                leftY = (stickyPitchValue / modeCfg.maxAngle) * 24; 
+                leftY = -(currentThrottle * 2 - 1) * 24; 
                 leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
                 rawMouseX *= Math.exp(-12.0 * dt);
                 rawMouseY *= Math.exp(-12.0 * dt);
