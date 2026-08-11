@@ -301,9 +301,9 @@
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
         container.appendChild(renderer.domElement);
 
         function handleResize() {
@@ -312,7 +312,7 @@
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             resizeOSD();
         }
 
@@ -344,6 +344,24 @@
         floorGeo.rotateX(-Math.PI / 2);
         const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
+
+        // --- ZERO-LAG PROCEDURAL SHADOW DOT ---
+        const shadowCanvas = document.createElement('canvas');
+        shadowCanvas.width = 64; shadowCanvas.height = 64;
+        const sCtx = shadowCanvas.getContext('2d');
+        const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
+        sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        sCtx.fillStyle = sGrad;
+        sCtx.fillRect(0, 0, 64, 64);
+        const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+        
+        const droneShadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
+        const droneShadowGeo = new THREE.PlaneGeometry(3.2, 3.2);
+        droneShadowGeo.rotateX(-Math.PI / 2);
+        const droneShadow = new THREE.Mesh(droneShadowGeo, droneShadowMat);
+        droneShadow.position.y = 0.02;
+        scene.add(droneShadow);
 
         const cloudGroup = new THREE.Group();
         const cloudCanvas = document.createElement('canvas');
@@ -489,10 +507,9 @@
         let mousePitch = 0, mouseRoll = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
-        let touchLeftValX = 0, touchLeftValY = 1.0; // Start at bottom (+1.0 in screen space down)
+        let touchLeftValX = 0, touchLeftValY = 1.0; 
         let touchRightValX = 0, touchRightValY = 0;
 
-        // Sticky throttle tracking: initialize at 0.0 (bottom)
         let stickyThrottleValue = 0.0; 
 
         const MOUSE_SENSITIVITY = 0.0025; 
@@ -659,7 +676,6 @@
         }
 
         if (isMobile) {
-            // Initialize left joystick knob visually at the bottom position on load/reset
             const leftKnob = document.getElementById('touch-left-knob');
             if (leftKnob) {
                 leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
@@ -695,11 +711,11 @@
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
             
             touchLeftValX = 0; 
-            touchLeftValY = 1.0; // Reset left stick vertical to bottom
+            touchLeftValY = 1.0; 
             touchRightValX = 0; touchRightValY = 0;
 
             const leftKnob = document.getElementById('touch-left-knob');
-            if(leftKnob) leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))'; // visually at bottom
+            if(leftKnob) leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))';
             
             const rightKnob = document.getElementById('touch-right-knob');
             if(rightKnob) rightKnob.style.transform = 'translate(-50%, -50%)';
@@ -847,6 +863,14 @@
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
+            // Update procedural shadow position & scale based on height
+            droneShadow.position.x = drone.position.x;
+            droneShadow.position.z = drone.position.z;
+            const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 25.0));
+            const shadowScale = (3.2 * heightFactor);
+            droneShadow.scale.set(shadowScale, shadowScale, 1);
+            droneShadow.material.opacity = Math.max(0.05, 0.55 * heightFactor);
+
             if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
 
             cloudGroup.children.forEach(c => {
@@ -896,4 +920,3 @@
     </script>
 </body>
 </html>
-
