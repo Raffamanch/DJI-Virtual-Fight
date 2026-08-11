@@ -200,10 +200,10 @@
                 <h1>DJI Avata Simulator</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : PITCH (Forward / Backward via Left Stick Vertical)<br>
+                    <b>[ W / S ]</b> : PITCH (Stays in position / No spring-back)<br>
                     <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
-                    <b>[ Move Mouse ]</b> : ROLL & THROTTLE (Right Stick mode with centering auto-return)<br><br>
-                    <span style="color: #00ffcc;">✓ Left Stick Pitch & Right Stick Roll/Throttle FPV Logic Active</span>
+                    <b>[ Move Mouse ]</b> : ROLL & THROTTLE (Right Stick mode)<br><br>
+                    <span style="color: #00ffcc;">✓ Left Stick Pitch Sticky/Locked Position Logic Active</span>
                 </p>
             </div>
         </div>
@@ -218,10 +218,10 @@
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
                 <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Pitch (Up/Down) & Yaw (Left/Right)<br>
-                <b>[ Right Joystick ]</b> : Roll & Throttle (Returns to center automatically)<br>
+                <b>[ Left Joystick ]</b> : Pitch (Stays where you leave it) & Yaw<br>
+                <b>[ Right Joystick ]</b> : Roll & Throttle<br>
                 <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Left Stick Pitch & Right Stick Roll/Throttle FPV Logic Active</span>
+                <span style="color: #00ffcc;">✓ Left Stick Pitch Sticky/Locked Position Logic Active</span>
             `;
         }
 
@@ -480,7 +480,7 @@
         };
         let activeMode = 1;
         let cameraMode = "FPV";
-        let isArmed = false; // Motor Disarmed by default
+        let isArmed = false;
 
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let isSpawnedSafe = true; 
@@ -492,6 +492,9 @@
         let touchLeftValX = 0, touchLeftValY = 0;
         let touchRightValX = 0, touchRightValY = 0;
 
+        // Sticky Left Stick Pitch variable (stays in place when released)
+        let stickyPitchValue = 0;
+
         const MOUSE_SENSITIVITY = 0.0025; 
         const THROTTLE_SPEED = 4.0;
         const YAW_RATE = 3.5;
@@ -500,7 +503,6 @@
         const CAMERA_UPTILT = 0 * (Math.PI / 180);
         let currentThrottle = 0;
 
-        // Motor Arm/Disarm Toggle Handler
         const motorBtn = document.getElementById('btn-motor-toggle');
         function toggleMotors() {
             if (!isArmed) {
@@ -519,7 +521,6 @@
             toggleMotors();
         });
 
-        // Fullscreen Toggle Handler
         const fullscreenBtn = document.getElementById('btn-fullscreen-toggle');
         fullscreenBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -649,17 +650,22 @@
                     dy = (dy / dist) * maxDist;
                 }
 
-                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                if (!isSticky) {
+                    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                } else {
+                    // For sticky left pad, only snap X back or keep Y where user left it
+                    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                }
                 callback(dx / maxDist, dy / maxDist);
             }
         }
 
         if (isMobile) {
-            // Left pad: Pitch (up/down) & Yaw (left/right)
+            // Left pad set to STICKY Y (stays where left)
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
                 touchLeftValX = x;
-                touchLeftValY = y;
-            }, false);
+                touchLeftValY = y; // Stays at current value when released
+            }, true);
             // Right pad: Roll & Throttle (returns to center automatically)
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
                 touchRightValX = x;
@@ -683,9 +689,11 @@
 
         function resetDrone() {
             drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
-            currentThrottle = 0; tumbleRotationVelocity.set(0, 0, 0);
+            currentThrottle = 0; stickyPitchValue = 0; tumbleRotationVelocity.set(0, 0, 0);
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
             touchLeftValX = 0; touchLeftValY = 0; touchRightValX = 0; touchRightValY = 0;
+            const leftKnob = document.getElementById('touch-left-knob');
+            if(leftKnob) leftKnob.style.transform = 'translate(-50%, -50%)';
             handleResize();
         }
 
@@ -736,16 +744,17 @@
                 currentThrottle = 0;
             } else {
                 if (isMobile) {
-                    // Right pad vertical can act as throttle adjustment or mouse can control it
-                } else {
-                    if (keys.s) currentThrottle = Math.min(1.0, currentThrottle + THROTTLE_SPEED * dt);
-                    if (keys.w) currentThrottle = Math.max(0.0, currentThrottle - THROTTLE_SPEED * dt);
+                    // Mobile right pad vertical can be used if needed
                 }
             }
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
-                targetPitch = -touchLeftValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
+                
+                // Sticky pitch: touchLeftValY stays at the last position when released
+                stickyPitchValue = -touchLeftValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
+                targetPitch = stickyPitchValue;
+
                 targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
                 const targetThrottlePad = (-touchRightValY + 1) / 2;
                 currentThrottle = targetThrottlePad;
@@ -766,18 +775,17 @@
 
                     drone.euler.y -= inputYaw;
 
-                    // W/S keys control Pitch (Left Stick Vertical mapping)
-                    let keyPitch = 0;
-                    if (keys.w) keyPitch = -modeCfg.maxAngle; // Pitch forward
-                    if (keys.s) keyPitch = modeCfg.maxAngle;  // Pitch backward
+                    // W/S keys control Pitch and STAYS in position (Sticky / No Spring-back)
+                    if (keys.w) stickyPitchValue = -modeCfg.maxAngle; // Pitch forward and stay
+                    if (keys.s) stickyPitchValue = modeCfg.maxAngle;  // Pitch backward and stay
 
                     if (modeCfg.hasAutoLevel) {
-                        drone.euler.x = keyPitch !== 0 ? keyPitch : 0;
+                        drone.euler.x = stickyPitchValue;
                         drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
                         if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
                         drone.rotation.setFromEuler(drone.euler);
                     } else {
-                        const pitchRate = keyPitch * 30.0;
+                        const pitchRate = stickyPitchValue * 30.0;
                         const rollRate = -mouseRoll * 30.0;
                         const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchRate * dt, -inputYaw, rollRate * dt, 'YXZ'));
                         drone.rotation.multiply(deltaRotation).normalize();
@@ -864,7 +872,7 @@
                 rightX = touchRightValX * 35;
                 rightY = touchRightValY * 35;
             } else {
-                leftY = (keys.w ? -1 : (keys.s ? 1 : 0)) * 24; 
+                leftY = (stickyPitchValue / modeCfg.maxAngle) * 24; 
                 leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
                 rawMouseX *= Math.exp(-12.0 * dt);
                 rawMouseY *= Math.exp(-12.0 * dt);
