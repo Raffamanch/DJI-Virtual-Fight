@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FPV PC Simulator - DJI Virtual Factory Authentic</title>
+    <title> </title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000000; font-family: monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         
@@ -14,58 +14,113 @@
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 6; pointer-events: none;
             display: flex; justify-content: center; align-items: center;
-            overflow: hidden; background: transparent;
+            overflow: hidden;
+            background: transparent;
         }
-        #osd-overlay-canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; }
+        #osd-overlay-canvas {
+            display: block;
+            image-rendering: pixelated;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
 
         #bottom-hud-bar {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; align-items: center; gap: 15px; z-index: 12; pointer-events: auto;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 12;
+            pointer-events: auto;
         }
         .hud-control-btn {
-            background: rgba(20, 25, 35, 0.85); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 8px 16px; border-radius: 8px; font-family: monospace; font-size: 13px; font-weight: bold;
-            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 6px;
+            background: rgba(20, 25, 35, 0.85);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 6px;
             transition: all 0.2s ease;
         }
         .hud-control-btn:hover { background: rgba(40, 50, 70, 0.95); }
 
-        /* AUTHENTIC DJI VIRTUAL FLIGHT STYLE RC STICKS OVERLAY */
         #rc-sticks-container {
-            position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 24px; z-index: 7; pointer-events: none;
+            position: absolute;
+            bottom: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 18px;
+            z-index: 7;
+            pointer-events: none;
         }
         .stick-box {
-            width: 90px; height: 90px; background: rgba(15, 20, 30, 0.45);
-            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
-            position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            backdrop-filter: blur(2px);
+            width: 82px;
+            height: 82px;
+            background: rgba(40, 45, 55, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 9px;
+            position: relative;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.33);
         }
-        .stick-cross-h { position: absolute; top: 50%; left: 15%; width: 70%; height: 1px; background: rgba(255, 255, 255, 0.25); }
-        .stick-cross-v { position: absolute; top: 15%; left: 50%; width: 1px; height: 70%; background: rgba(255, 255, 255, 0.25); }
+        .stick-cross-h {
+            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
+        }
+        .stick-cross-v {
+            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
+        }
         .stick-ball {
-            position: absolute; width: 18px; height: 18px; background: #ffffff; border-radius: 50%;
+            position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8), 0 2px 5px rgba(0,0,0,0.6);
-            transition: transform 0.03s cubic-bezier(0.1, 0.9, 0.2, 1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
         }
 
         #touch-controls {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
-            z-index: 9; pointer-events: none; display: none;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9;
+            pointer-events: none;
+            display: none;
         }
         .touch-pad {
-            position: absolute; bottom: env(safe-area-inset-bottom, 30px); width: 140px; height: 140px;
-            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.25);
-            border-radius: 50%; pointer-events: auto; touch-action: none;
+            position: absolute;
+            bottom: env(safe-area-inset-bottom, 30px);
+            width: 140px;
+            height: 140px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            pointer-events: auto;
+            touch-action: none;
         }
         #touch-left-pad { left: 20px; bottom: 60px; }
         #touch-right-pad { right: 20px; bottom: 60px; }
         
         .touch-knob {
-            position: absolute; top: 50%; left: 50%; width: 54px; height: 54px;
-            background: rgba(255, 255, 255, 0.6); border: 2px solid #ffffff; border-radius: 50%;
-            transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 54px;
+            height: 54px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
         #top-action-bar {
@@ -81,15 +136,16 @@
 
         #top-menu-bar { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 20px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
         #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        
         #mobile-mode-btn {
             color: #ffeb3b; font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             display: none; font-weight: bold;
         }
 
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.45); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
-        #menu-content { background: rgba(20, 25, 35, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); pointer-events: auto; max-width: 90%; }
-        h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #00d2ff; }
-        p { line-height: 1.6; font-size: 13px; color: #ddd; }
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
+        #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
+        h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
+        p { line-height: 1.6; font-size: 14px; color: #eee; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -97,7 +153,7 @@
 
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">DJI VIRTUAL FLIGHT &bull; FACTORY SPAWN</div>
+            <div id="menu-dot-esc">NO &bull; 6/5</div>
             <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
@@ -111,12 +167,12 @@
             <canvas id="osd-overlay-canvas"></canvas>
         </div>
 
+        <!-- Bottom Center HUD: Motor Toggle Logo & Fullscreen Logo -->
         <div id="bottom-hud-bar">
             <button id="btn-motor-toggle" class="hud-control-btn" title="Toggle Motor">&#9881;</button>
             <button id="btn-fullscreen-toggle" class="hud-control-btn" title="Fullscreen">&#x26F6;</button>
         </div>
 
-        <!-- Authentic Circular Smooth DJI Sticks Overlay -->
         <div id="rc-sticks-container">
             <div class="stick-box">
                 <div class="stick-cross-h"></div>
@@ -131,20 +187,23 @@
         </div>
 
         <div id="touch-controls">
-            <div id="touch-left-pad" class="touch-pad"><div id="touch-left-knob" class="touch-knob"></div></div>
-            <div id="touch-right-pad" class="touch-pad"><div id="touch-right-knob" class="touch-knob"></div></div>
+            <div id="touch-left-pad" class="touch-pad">
+                <div id="touch-left-knob" class="touch-knob"></div>
+            </div>
+            <div id="touch-right-pad" class="touch-pad">
+                <div id="touch-right-knob" class="touch-knob"></div>
+            </div>
         </div>
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Virtual Flight - Factory Spawn & Authentic Look</h1>
+                <h1>DJI Avata Simulator</h1>
                 <p id="instruction-text">
-                    <b>[ CLICK TO START & UNMUTE SOUND ]</b><br><br>
-                    <b>[ W / S ]</b> : Throttle Up/Down (Quick Launch)<br>
-                    <b>[ A / D ]</b> : Yaw | <b>[ M ]</b> : Arm Motors | <b>[ R ]</b> : Reset<br>
-                    <b>[ + / - ]</b> : Volume Up / Down<br>
-                    <b>[ Mouse Move ]</b> : Pitch & Roll (Instantly centers back)<br><br>
-                    <span style="color: #00d2ff;">Factory Warehouse Interior Spawn, Natural Daylight Lighting (No Over-Saturation), Ultra-Smooth RC Sticks & Massive Racing Track!</span>
+                    <b>[ CLICK TO START / PLAY ]</b><br><br>
+                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Stays in position / No spring-back)<br>
+                    <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
+                    <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
+                    <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
                 </p>
             </div>
         </div>
@@ -158,54 +217,12 @@
             document.getElementById('mobile-mode-btn').style.display = 'block';
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
-                <b>[ TAP TO START & UNMUTE SOUND ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
-                <b>[ Right Joystick ]</b> : Pitch & Roll (Springs back)<br>
-                <b>[ + / - Keys ]</b> : Adjust Drone FPV Sound Volume<br><br>
-                <span style="color: #00d2ff;">Factory Spawn, Natural Lighting & Smooth HUD Active!</span>
+                <b>[ TAP TO START SIMULATOR ]</b><br><br>
+                <b>[ Left Joystick ]</b> : Throttle Up/Down (Starts at bottom / Stays where left)<br>
+                <b>[ Right Joystick ]</b> : Pitch & Roll (Returns to center automatically)<br>
+                <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
+                <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
             `;
-        }
-
-        // --- AUDIO ENGINE ---
-        let audioCtx = null;
-        let motorOsc = null;
-        let motorGain = null;
-        let masterVolume = 0.5;
-
-        function initAudio() {
-            if (audioCtx) return;
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                motorOsc = audioCtx.createOscillator();
-                motorGain = audioCtx.createGain();
-
-                motorOsc.type = 'sawtooth';
-                motorOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
-
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(400, audioCtx.currentTime);
-
-                motorGain.gain.setValueAtTime(0, audioCtx.currentTime);
-
-                motorOsc.connect(filter);
-                filter.connect(motorGain);
-                motorGain.connect(audioCtx.destination);
-                motorOsc.start();
-            } catch(e) { console.log("Audio init error", e); }
-        }
-
-        function updateAudio(throttle, armed) {
-            if (!audioCtx || !motorGain || !motorOsc) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (armed && throttle > 0.02) {
-                let targetFreq = 50 + throttle * 320;
-                let targetGain = throttle * masterVolume * 0.35;
-                motorOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.05);
-                motorGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.05);
-            } else {
-                motorGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            }
         }
 
         const osdCanvas = document.getElementById('osd-overlay-canvas');
@@ -223,14 +240,20 @@
             }
             osdCanvas.width = nativeImgWidth;
             osdCanvas.height = nativeImgHeight;
-            if (osdImg.complete) renderProcessedOSD();
+            if (osdImg.complete) {
+                renderProcessedOSD();
+            }
         }
 
         function renderProcessedOSD() {
             oCtx.clearRect(0, 0, osdCanvas.width, osdCanvas.height);
             oCtx.drawImage(osdImg, 0, 0, osdCanvas.width, osdCanvas.height);
+            
             const imgData = oCtx.getImageData(0, 0, osdCanvas.width, osdCanvas.height);
             const data = imgData.data;
+            const width = osdCanvas.width;
+            const height = osdCanvas.height;
+
             for (let i = 0; i < data.length; i += 4) {
                 let r = data[i], g = data[i+1], b = data[i+2];
                 if (r < 55 && g < 55 && b < 55) {
@@ -238,35 +261,49 @@
                 } else {
                     let brightness = (r + g + b) / 3;
                     if (brightness > 60) {
-                        data[i]   = Math.min(255, r * 1.1);
-                        data[i+1] = Math.min(255, g * 1.1);
-                        data[i+2] = Math.min(255, b * 1.1);
+                        data[i]   = Math.min(255, r * 1.2);
+                        data[i+1] = Math.min(255, g * 1.2);
+                        data[i+2] = Math.min(255, b * 1.2);
                         data[i+3] = 255;
                     } else {
                         data[i+3] = 0;
                     }
                 }
             }
+
+            const tempData = new Uint8ClampedArray(data);
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let idx = (y * width + x) * 4;
+                    if (data[idx + 3] === 0) {
+                        let solidNeighbors = 0;
+                        if (tempData[((y-1) * width + x) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[((y+1) * width + x) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[(y * width + (x-1)) * 4 + 3] > 128) solidNeighbors++;
+                        if (tempData[(y * width + (x+1)) * 4 + 3] > 128) solidNeighbors++;
+                        if (solidNeighbors === 0) {
+                            data[idx + 3] = 0;
+                        }
+                    }
+                }
+            }
+
             oCtx.putImageData(imgData, 0, 0);
         }
+
         osdImg.onload = () => { resizeOSD(); };
 
         const container = document.getElementById('canvas-container');
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        // Natural DJI Virtual Flight sky color (Clean professional blue, no exaggerated neon or over-saturation)
-        scene.background = new THREE.Color(0x6ba4e8);
-        scene.fog = new THREE.FogExp2(0x8cb8eb, 0.001);
+        scene.background = new THREE.Color(0xa4caff);
+        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 5000);
-        
+        const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-        // Professional balanced color rendering without overblown bloom highlights
-        renderer.toneMapping = THREE.LinearToneMapping;
-        renderer.toneMappingExposure = 1.0;
         container.appendChild(renderer.domElement);
 
         function handleResize() {
@@ -280,104 +317,151 @@
         }
 
         window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', () => { setTimeout(handleResize, 300); });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleResize, 300);
+        });
+
         setTimeout(handleResize, 100);
 
-        // --- NATURAL PROFESSIONAL LIGHTING ---
-        scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-        const sunLight = new THREE.DirectionalLight(0xfffff0, 1.5);
-        sunLight.position.set(300, 600, 300);
-        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.6);
+        skyLight.position.set(100, 300, 50);
+        scene.add(skyLight);
 
-        // --- MAP ENVIRONMENT: FACTORY SPAWN, WAREHOUSES & RACING TRACK ---
+        const floorCanvas = document.createElement('canvas');
+        floorCanvas.width = 256; floorCanvas.height = 256;
+        const ctxFloor = floorCanvas.getContext('2d');
+        ctxFloor.fillStyle = '#4d7c3d'; ctxFloor.fillRect(0, 0, 256, 256);
+        for(let i=0; i<800; i++) {
+            ctxFloor.fillStyle = i % 2 === 0 ? '#568a44' : '#457037';
+            ctxFloor.fillRect(Math.random()*256, Math.random()*256, 3, 3);
+        }
+        const floorTex = new THREE.CanvasTexture(floorCanvas);
+        floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping;
+        floorTex.repeat.set(180, 180);
+
+        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
+        floorGeo.rotateX(-Math.PI / 2);
+        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
+        scene.add(new THREE.Mesh(floorGeo, floorMat));
+
+        // --- ZERO-LAG PROCEDURAL SHADOW DOT ---
+        const shadowCanvas = document.createElement('canvas');
+        shadowCanvas.width = 64; shadowCanvas.height = 64;
+        const sCtx = shadowCanvas.getContext('2d');
+        const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
+        sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        sCtx.fillStyle = sGrad;
+        sCtx.fillRect(0, 0, 64, 64);
+        const shadowTex = new THREE.CanvasTexture(shadowCanvas);
         
-        // Ground plane
-        const groundMat = new THREE.MeshBasicMaterial({ color: 0x4a5d4e });
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000), groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.5;
-        scene.add(ground);
+        const droneShadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
+        const droneShadowGeo = new THREE.PlaneGeometry(3.2, 3.2);
+        droneShadowGeo.rotateX(-Math.PI / 2);
+        const droneShadow = new THREE.Mesh(droneShadowGeo, droneShadowMat);
+        droneShadow.position.y = 0.02;
+        scene.add(droneShadow);
 
-        // Factory Warehouse Interior Spawn & Surroundings
-        const wallCanvas = document.createElement('canvas');
-        wallCanvas.width = 64; wallCanvas.height = 64;
-        const ctxW = wallCanvas.getContext('2d');
-        ctxW.fillStyle = '#adb5bd'; ctxW.fillRect(0,0,64,64);
-        ctxW.fillStyle = '#495057'; ctxW.fillRect(2,2,60,60);
-        const wallTex = new THREE.CanvasTexture(wallCanvas);
-        wallTex.wrapS = THREE.RepeatWrapping; wallTex.wrapT = THREE.RepeatWrapping;
-        wallTex.repeat.set(4, 12);
-        const factoryMat = new THREE.MeshBasicMaterial({ map: wallTex });
+        const cloudGroup = new THREE.Group();
+        const cloudCanvas = document.createElement('canvas');
+        cloudCanvas.width = 128; cloudCanvas.height = 128;
+        const ctxCloud = cloudCanvas.getContext('2d');
+        let grad = ctxCloud.createRadialGradient(64,64,10, 64,64,55);
+        grad.addColorStop(0, 'rgba(255,255,255,0.85)');
+        grad.addColorStop(0.4, 'rgba(240,245,255,0.6)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctxCloud.fillStyle = grad; ctxCloud.fillRect(0,0,128,128);
+        const cloudTex = new THREE.CanvasTexture(cloudCanvas);
+
+        const cloudSpriteMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.6 });
+        for(let c=0; c<45; c++) {
+            const sprite = new THREE.Sprite(cloudSpriteMat);
+            sprite.position.set((Math.random()-0.5)*1200, 180 + Math.random()*70, (Math.random()-0.5)*1200);
+            sprite.scale.set(120 + Math.random()*100, 50 + Math.random()*40, 1);
+            cloudGroup.add(sprite);
+        }
+        scene.add(cloudGroup);
 
         const obstacles = [];
-        function createWarehouse(x, z, w, h, d) {
-            const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), factoryMat);
-            b.position.set(x, h/2, z);
-            scene.add(b);
-            obstacles.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2, minY: 0, maxY: h });
+        const blockCanvas = document.createElement('canvas');
+        blockCanvas.width = 64; blockCanvas.height = 64;
+        const ctxBlock = blockCanvas.getContext('2d');
+        ctxBlock.fillStyle = '#6e7a8a'; ctxBlock.fillRect(0,0,64,64);
+        ctxBlock.fillStyle = '#7a8899'; ctxBlock.fillRect(2,2,60,60);
+        const blockTex = new THREE.CanvasTexture(blockCanvas);
+        blockTex.wrapS = THREE.RepeatWrapping; blockTex.wrapT = THREE.RepeatWrapping;
+        blockTex.repeat.set(2, 8);
+
+        const wallMat = new THREE.MeshBasicMaterial({ map: blockTex });
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff1144 });
+
+        function createTrackTower(x, z, width, height, depth) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
+            mesh.position.set(x, height / 2, z);
+            scene.add(mesh);
+            obstacles.push({ minX: x - width/2, maxX: x + width/2, minZ: z - depth/2, maxZ: z + depth/2, minY: 0, maxY: height });
         }
 
-        // Factory Spawn Area: Enclosed warehouse hangars simulating DJI Virtual Flight Factory map layout
-        createWarehouse(0, -80, 160, 45, 100);   // Back wall
-        createWarehouse(-120, 0, 45, 45, 200);   // Left wall structure
-        createWarehouse(120, 0, 45, 45, 200);    // Right wall structure
-        createWarehouse(0, 100, 160, 45, 40);    // Front entrance structure
-        // Roof over spawn hangar to give true interior factory feel
-        const roof = new THREE.Mesh(new THREE.BoxGeometry(170, 2, 210), new THREE.MeshBasicMaterial({ color: 0x33373d }));
-        roof.position.set(0, 46, 0);
-        scene.add(roof);
-
-        // Additional exterior factory warehouses & obstacles
-        createWarehouse(-250, -300, 150, 70, 200);
-        createWarehouse(250, -320, 160, 80, 180);
-        createWarehouse(0, -600, 300, 90, 150);
-
-        // Racing Gates & Track
-        const gateMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff }); // Clean DJI Blue racing gates
         function createVelociGate(x, z, rotY) {
-            const gateGroup = new THREE.Group();
-            const gateW = 18, gateH = 14, thick = 0.9;
+            const gateGroup = new THREE.Group(); const gateW = 15, gateH = 11, thick = 0.7;
             const top = new THREE.Mesh(new THREE.BoxGeometry(gateW, thick, thick), gateMat); top.position.y = gateH;
             const left = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); left.position.set(-gateW/2, gateH/2, 0);
             const right = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); right.position.set(gateW/2, gateH/2, 0);
-            gateGroup.add(top, left, right);
-            gateGroup.position.set(x, 0, z);
-            gateGroup.rotation.y = rotY;
-            scene.add(gateGroup);
+            gateGroup.add(top, left, right); gateGroup.position.set(x, 0, z); gateGroup.rotation.y = rotY; scene.add(gateGroup);
 
-            const isRotated = Math.abs(rotY) > 0.1;
-            const sizeX = isRotated ? thick : gateW;
-            const sizeZ = isRotated ? gateW : thick;
-            obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.5, maxY: gateH + 0.5 });
+            const isRotated = Math.abs(rotY) > 0.1; const sizeX = isRotated ? thick : gateW; const sizeZ = isRotated ? gateW : thick;
+            const lx = x + (isRotated ? 0 : -gateW/2); const lz = z + (isRotated ? -gateW/2 : 0);
+            obstacles.push({ minX: lx - 0.5, maxX: lx + 0.5, minZ: lz - 0.5, maxZ: lz + 0.5, minY: 0, maxY: gateH });
+            const rx = x + (isRotated ? 0 : gateW/2); const rz = z + (isRotated ? gateW/2 : 0);
+            obstacles.push({ minX: rx - 0.5, maxX: rx + 0.5, minZ: rz - 0.5, maxZ: rz + 0.5, minY: 0, maxY: gateH });
+            obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.4, maxY: gateH + 0.4 });
         }
 
-        // Spawn right inside the factory, facing out towards the racing circuit
-        createVelociGate(0, 40, 0);
-        createVelociGate(0, -40, 0);
-        createVelociGate(-80, -140, Math.PI / 4);
-        createVelociGate(80, -140, -Math.PI / 4);
+        createTrackTower(-60, -100, 30, 70, 30);
+        createTrackTower(70, -120, 35, 90, 35);
+        createTrackTower(-90, 20, 25, 55, 25);
+        createTrackTower(80, 40, 30, 65, 30);
+
+        createVelociGate(0, -20, 0);
+        createVelociGate(-35, -60, Math.PI / 4);
+        createVelociGate(35, -60, -Math.PI / 4);
+        createVelociGate(0, -120, 0);
+        createVelociGate(-50, -170, Math.PI / 2);
+        createVelociGate(50, -170, Math.PI / 2);
         createVelociGate(0, -240, 0);
 
-        // --- DJI AVATA 3D MODEL WITH SHADOW ---
+        // --- DJI AVATA 1 3D MODEL CONSTRUCTION ---
         const droneGroup = new THREE.Group();
+        
         const bodyMat = new THREE.MeshBasicMaterial({ color: 0x1c1e22 });
+        const accentMat = new THREE.MeshBasicMaterial({ color: 0x2e323b });
         const orangeAccent = new THREE.MeshBasicMaterial({ color: 0xff6600 });
         const glassLensMat = new THREE.MeshBasicMaterial({ color: 0x112244 });
 
         const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
+        fuselage.position.set(0, 0, 0);
         droneGroup.add(fuselage);
 
         const ductMaterial = new THREE.MeshBasicMaterial({ color: 0x22252b, side: THREE.DoubleSide });
         const propMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+
         const propMeshes = [];
-        const ductPositions = [{ x: 0.95, z: 0.85 }, { x: -0.95, z: 0.85 }, { x: 0.95, z: -0.85 }, { x: -0.95, z: -0.85 }];
+        const ductPositions = [
+            { x: 0.95, z: 0.85 },   
+            { x: -0.95, z: 0.85 },  
+            { x: 0.95, z: -0.85 },  
+            { x: -0.95, z: -0.85 }   
+        ];
 
         ductPositions.forEach(pos => {
-            const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.4, 16, 1, true), ductMaterial);
+            const ductGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.4, 24, 1, true);
+            const duct = new THREE.Mesh(ductGeo, ductMaterial);
             duct.position.set(pos.x, 0, pos.z);
             droneGroup.add(duct);
 
-            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.04, 6, 16), orangeAccent);
+            const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 8, 24);
+            const ring = new THREE.Mesh(ringGeo, orangeAccent);
             ring.rotation.x = Math.PI / 2;
             ring.position.set(pos.x, 0, pos.z);
             droneGroup.add(ring);
@@ -388,31 +472,19 @@
             propMeshes.push(prop);
         });
 
-        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 12), glassLensMat);
+        const gimbalHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), accentMat);
+        gimbalHousing.position.set(0, -0.05, 0.95);
+        droneGroup.add(gimbalHousing);
+
+        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16), glassLensMat);
         cameraLens.rotation.x = Math.PI / 2;
         cameraLens.position.set(0, -0.05, 1.2);
         droneGroup.add(cameraLens);
+
         scene.add(droneGroup);
 
-        // Potato-optimized Real Shadow Dot
-        const shadowCanvas = document.createElement('canvas');
-        shadowCanvas.width = 64; shadowCanvas.height = 64;
-        const sCtx = shadowCanvas.getContext('2d');
-        const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
-        sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        sCtx.fillStyle = sGrad;
-        sCtx.fillRect(0, 0, 64, 64);
-        const droneShadow = new THREE.Mesh(
-            new THREE.PlaneGeometry(3.2, 3.2).rotateX(-Math.PI / 2),
-            new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false })
-        );
-        droneShadow.position.y = 0.03;
-        scene.add(droneShadow);
-
-        // --- FLIGHT PHYSICS & STATE (SPAWN INSIDE FACTORY HANGAR AT Z = 15) ---
         const drone = {
-            position: new THREE.Vector3(0, 0.3, 15), 
+            position: new THREE.Vector3(0, 0.3, 45), 
             velocity: new THREE.Vector3(0, 0, 0),
             rotation: new THREE.Quaternion(),
             euler: new THREE.Euler(0, 0, 0, 'YXZ')
@@ -421,75 +493,127 @@
         const MODES = {
             1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.5 },
             2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.8 },
-            3: { name: "MANUAL", maxThrust: 26.0, drag: 0.022, hasAutoLevel: false },
-            4: { name: "ACRO",   maxThrust: 26.0, drag: 0.009, hasAutoLevel: false }
+            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, hasAutoLevel: false },
+            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
         };
         let activeMode = 1;
         let cameraMode = "FPV";
         let isArmed = false;
 
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
-        let keys = { w: false, s: false, a: false, d: false };
+        let isSpawnedSafe = true; 
 
+        let keys = { w: false, s: false, a: false, d: false };
         let mousePitch = 0, mouseRoll = 0;
         let rawMouseX = 0, rawMouseY = 0;
-        let mouseInputActive = false;
-        let mouseIdleTimer = null;
 
         let touchLeftValX = 0, touchLeftValY = 1.0; 
         let touchRightValX = 0, touchRightValY = 0;
+
         let stickyThrottleValue = 0.0; 
 
         const MOUSE_SENSITIVITY = 0.0025; 
-        const THROTTLE_CHANGE_SPEED = 1.5;
+        const THROTTLE_CHANGE_SPEED = 0.8; 
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
+        
+        const CAMERA_UPTILT = 0 * (Math.PI / 180);
         let currentThrottle = 0;
 
-        // --- CONTROLS & SHORTCUTS ---
         const motorBtn = document.getElementById('btn-motor-toggle');
         function toggleMotors() {
-            initAudio();
-            isArmed = !isArmed;
-            if (!isArmed) { currentThrottle = 0; stickyThrottleValue = 0; }
+            if (!isArmed) {
+                const modeCfg = MODES[activeMode];
+                if (!modeCfg.hasAutoLevel && currentThrottle > 0.05) {
+                    return;
+                }
+                isArmed = true;
+            } else {
+                isArmed = false;
+                currentThrottle = 0;
+                stickyThrottleValue = 0;
+            }
         }
-        motorBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMotors(); });
+        motorBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMotors();
+        });
+
+        const fullscreenBtn = document.getElementById('btn-fullscreen-toggle');
+        fullscreenBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        });
+
+        function startGameSession() {
+            handleResize();
+            inst.style.display = 'none';
+            if (!isMobile) {
+                container.requestPointerLock();
+            }
+        }
+        container.addEventListener('click', startGameSession);
+        inst.addEventListener('click', startGameSession);
+
+        document.addEventListener('pointerlockchange', () => { 
+            if (!isMobile) {
+                const isLocked = (document.pointerLockElement === container);
+                inst.style.display = isLocked ? 'none' : 'flex';
+                if (!isLocked) { rawMouseX = 0; rawMouseY = 0; }
+            }
+        });
 
         document.addEventListener('keydown', (e) => {
-            initAudio();
-            if (e.key.toLowerCase() === 'm') { toggleMotors(); return; }
+            if (e.key.toLowerCase() === 'm') {
+                toggleMotors();
+                return;
+            }
             if (['1','2','3','4'].includes(e.key)) {
                 activeMode = parseInt(e.key);
-                document.getElementById('mobile-mode-btn').innerText = `MODE: ${MODES[activeMode].name}`;
+                updateMobileModeButtonText();
                 return;
             }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
-            
-            if (e.key === '+' || e.key === '=') { masterVolume = Math.min(1.0, masterVolume + 0.1); return; }
-            if (e.key === '-' || e.key === '_') { masterVolume = Math.max(0.0, masterVolume - 0.1); return; }
-
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true;
             if (key === 'r') resetDrone();
         });
-
-        document.addEventListener('keyup', (e) => { 
-            const key = e.key.toLowerCase(); 
-            if (key in keys) keys[key] = false; 
-        });
-
+        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
             mousePitch = -e.movementY * MOUSE_SENSITIVITY;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
-            rawMouseX = Math.max(-35, Math.min(35, e.movementX * 1.2));
-            rawMouseY = Math.max(-35, Math.min(35, -e.movementY * 1.2));
-            mouseInputActive = true;
+            
+            rawMouseX += e.movementX * 0.4;
+            rawMouseY += e.movementY * 0.4;
+            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
+            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
+        });
 
-            clearTimeout(mouseIdleTimer);
-            mouseIdleTimer = setTimeout(() => {
-                mouseInputActive = false;
-            }, 40);
+        function updateMobileModeButtonText() {
+            const btn = document.getElementById('mobile-mode-btn');
+            if (btn) {
+                btn.innerText = `MODE: ${MODES[activeMode].name}`;
+            }
+        }
+
+        document.getElementById('mobile-mode-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            activeMode = (activeMode % 4) + 1;
+            updateMobileModeButtonText();
         });
 
         function setupTouchJoystick(padId, knobId, callback, isStickyY = false) {
@@ -500,7 +624,6 @@
 
             pad.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                initAudio();
                 if (activeTouchId === null) {
                     const touch = e.changedTouches[0];
                     activeTouchId = touch.identifier;
@@ -512,7 +635,9 @@
                 e.preventDefault();
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
-                    if (touch.identifier === activeTouchId) updateStick(touch);
+                    if (touch.identifier === activeTouchId) {
+                        updateStick(touch);
+                    }
                 }
             }, { passive: false });
 
@@ -534,10 +659,17 @@
 
             function updateStick(touch) {
                 const rect = pad.getBoundingClientRect();
-                let dx = touch.clientX - (rect.left + rect.width / 2);
-                let dy = touch.clientY - (rect.top + rect.height / 2);
-                const dist = Math.hypot(dx, dy);
-                if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                let dx = touch.clientX - centerX;
+                let dy = touch.clientY - centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+
                 knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 callback(dx / maxDist, dy / maxDist);
             }
@@ -545,66 +677,64 @@
 
         if (isMobile) {
             const leftKnob = document.getElementById('touch-left-knob');
-            if (leftKnob) leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
+            if (leftKnob) {
+                leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
+            }
+
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
-                touchLeftValX = x; if (y !== null) touchLeftValY = y;
+                touchLeftValX = x;
+                if (y !== null) touchLeftValY = y;
             }, true);
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
-                touchRightValX = x; touchRightValY = y;
+                touchRightValX = x;
+                touchRightValY = y;
             }, false);
         }
 
-        document.getElementById('btn-switch-view').addEventListener('click', (e) => { e.stopPropagation(); cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; });
-        document.getElementById('btn-retry').addEventListener('click', (e) => { e.stopPropagation(); resetDrone(); });
-        document.getElementById('btn-pause').addEventListener('click', (e) => { 
-            e.stopPropagation(); 
-            if (!isMobile) document.exitPointerLock(); 
-            inst.style.display = 'flex'; 
+        document.getElementById('btn-switch-view').addEventListener('click', (e) => {
+            e.stopPropagation();
+            cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
+        });
+        document.getElementById('btn-retry').addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetDrone();
+        });
+        document.getElementById('btn-pause').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!isMobile) document.exitPointerLock();
+            inst.style.display = 'flex';
         });
 
         function resetDrone() {
-            drone.position.set(0, 0.3, 15); 
-            drone.velocity.set(0, 0, 0); 
-            drone.rotation.set(0, 0, 0, 1); 
-            drone.euler.set(0, 0, 0);
+            drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
             currentThrottle = 0; stickyThrottleValue = 0; tumbleRotationVelocity.set(0, 0, 0);
-            rawMouseX = 0; rawMouseY = 0; mouseInputActive = false;
-            touchLeftValX = 0; touchLeftValY = 1.0; 
+            isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
+            
+            touchLeftValX = 0; 
+            touchLeftValY = 1.0; 
             touchRightValX = 0; touchRightValY = 0;
 
             const leftKnob = document.getElementById('touch-left-knob');
             if(leftKnob) leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))';
+            
             const rightKnob = document.getElementById('touch-right-knob');
             if(rightKnob) rightKnob.style.transform = 'translate(-50%, -50%)';
+
             handleResize();
         }
-
-        function startGameSession() {
-            initAudio();
-            handleResize();
-            inst.style.display = 'none';
-            if (!isMobile) container.requestPointerLock();
-        }
-        container.addEventListener('click', startGameSession);
-        inst.addEventListener('click', startGameSession);
-
-        document.addEventListener('pointerlockchange', () => { 
-            if (!isMobile) {
-                const isLocked = (document.pointerLockElement === container);
-                inst.style.display = isLocked ? 'none' : 'flex';
-                if (!isLocked) { rawMouseX = 0; rawMouseY = 0; mouseInputActive = false; }
-            }
-        });
 
         function handleCollisions() {
-            const px = drone.position.x, py = drone.position.y, pz = drone.position.z; 
+            const px = drone.position.x; const py = drone.position.y; const pz = drone.position.z; 
             const buffer = 0.8; 
+
             for(let i = 0; i < obstacles.length; i++) {
                 const obs = obstacles[i];
                 if(px + buffer > obs.minX && px - buffer < obs.maxX && pz + buffer > obs.minZ && pz - buffer < obs.maxZ) {
                     if(py + buffer > obs.minY && py - buffer < obs.maxY) {
                         let overlapX = Math.min(obs.maxX - (px - buffer), (px + buffer) - obs.minX);
                         let overlapZ = Math.min(obs.maxZ - (pz - buffer), (pz + buffer) - obs.minZ);
+                        let speedH = Math.sqrt(drone.velocity.x * drone.velocity.x + drone.velocity.z * drone.velocity.z);
+
                         if (overlapX < overlapZ) {
                             drone.position.x += (px > (obs.minX + obs.maxX)/2) ? overlapX : -overlapX;
                             drone.velocity.x *= -0.4;
@@ -612,8 +742,14 @@
                             drone.position.z += (pz > (obs.minZ + obs.maxZ)/2) ? overlapZ : -overlapZ;
                             drone.velocity.z *= -0.4;
                         }
-                        drone.velocity.y = 2.8; 
-                        tumbleRotationVelocity.set((Math.random()-0.5)*15, (Math.random()-0.5)*15, (Math.random()-0.5)*15);
+
+                        if (speedH > 4.5) {
+                            tumbleRotationVelocity.set((Math.random() - 0.5) * 60.0, (Math.random() - 0.5) * 40.0, (Math.random() - 0.5) * 60.0);
+                            drone.velocity.y = speedH * 0.45 + 2.5; 
+                        } else {
+                            drone.velocity.y = 2.8; 
+                            tumbleRotationVelocity.set((Math.random()-0.5)*9, (Math.random()-0.5)*9, (Math.random()-0.5)*9);
+                        }
                     }
                 }
             }
@@ -626,7 +762,9 @@
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
-            let inputYaw = 0, targetPitch = 0, targetRoll = 0;
+            let inputYaw = 0;
+            let targetPitch = 0;
+            let targetRoll = 0;
 
             if (!isArmed) {
                 currentThrottle = 0;
@@ -642,15 +780,15 @@
                 }
             }
 
-            updateAudio(currentThrottle, isArmed);
-
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
                 targetPitch = -touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
                 targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
+
                 drone.euler.y -= inputYaw;
                 if (modeCfg.hasAutoLevel) {
-                    drone.euler.x = targetPitch; drone.euler.z = targetRoll;
+                    drone.euler.x = targetPitch;
+                    drone.euler.z = targetRoll;
                     drone.rotation.setFromEuler(drone.euler);
                 } else {
                     const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(targetPitch * dt, -inputYaw, targetRoll * dt, 'YXZ'));
@@ -660,59 +798,91 @@
                 if (document.pointerLockElement === container) {
                     if (keys.a) inputYaw = -YAW_RATE * dt;
                     if (keys.d) inputYaw = YAW_RATE * dt;
+
                     drone.euler.y -= inputYaw;
 
                     if (modeCfg.hasAutoLevel) {
                         drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
                         drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
-                        drone.euler.x *= Math.exp(-6.0 * dt);
-                        drone.euler.z *= Math.exp(-6.0 * dt);
+                        if (Math.abs(mousePitch) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
+                        if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
                         drone.rotation.setFromEuler(drone.euler);
                     } else {
-                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-mousePitch * 30.0 * dt, -inputYaw, -mouseRoll * 30.0 * dt, 'YXZ'));
+                        const pitchRate = -mousePitch * 30.0;
+                        const rollRate = -mouseRoll * 30.0;
+                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchRate * dt, -inputYaw, rollRate * dt, 'YXZ'));
                         drone.rotation.multiply(deltaRotation).normalize();
                     }
+                } else {
+                    rawMouseX *= Math.exp(-10.0 * dt);
+                    rawMouseY *= Math.exp(-10.0 * dt);
                 }
             }
 
-            // Ultra-fast smooth centering back for mouse right stick
-            if (!mouseInputActive) {
-                rawMouseX += (0 - rawMouseX) * Math.min(1.0, 25.0 * dt);
-                rawMouseY += (0 - rawMouseY) * Math.min(1.0, 25.0 * dt);
-            }
+            if (drone.position.y > 1.5) { isSpawnedSafe = false; }
 
             if (tumbleRotationVelocity.lengthSq() > 0.001) {
-                drone.rotation.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ'))).normalize();
-                tumbleRotationVelocity.multiplyScalar(Math.exp(-2.4 * dt));
+                const tumbleQuaternion = new THREE.Quaternion().setFromEuler(
+                    new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ')
+                );
+                drone.rotation.multiply(tumbleQuaternion).normalize();
+                tumbleRotationVelocity.multiplyScalar(Math.exp(-2.4 * dt)); 
+                if (modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.4) { 
+                    drone.euler.setFromQuaternion(drone.rotation, 'YXZ'); 
+                }
             }
 
             const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
             const thrust = localUp.multiplyScalar(currentThrottle * modeCfg.maxThrust);
-            const accel = new THREE.Vector3().addVectors(thrust, new THREE.Vector3(0, -GRAVITY, 0));
+            const gravityForce = new THREE.Vector3(0, -GRAVITY, 0);
+
+            const accel = new THREE.Vector3().addVectors(thrust, gravityForce);
             drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
             if (drone.position.y < 0.3) {
-                drone.position.y = 0.3;
-                drone.velocity.y = 0;
+                drone.position.y = 0.3; 
+                if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
+                    tumbleRotationVelocity.set((Math.random()-0.5)*45, (Math.random()-0.5)*25, (Math.random()-0.5)*45);
+                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.38 + 1.2;
+                } else if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 0.5) {
+                    drone.velocity.y = 1.8;
+                    tumbleRotationVelocity.set((Math.random()-0.5)*6, (Math.random()-0.5)*6, (Math.random()-0.5)*6);
+                } else {
+                    drone.velocity.y = 0;
+                }
                 drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
+                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.2) { 
+                    drone.euler.x = 0; drone.euler.z = 0; drone.rotation.setFromEuler(drone.euler); 
+                }
             }
 
             handleCollisions();
+
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            droneShadow.position.set(drone.position.x, 0.03, drone.position.z);
-            const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 30.0));
-            droneShadow.scale.set(3.2 * heightFactor, 3.2 * heightFactor, 1);
-            droneShadow.material.opacity = Math.max(0.05, 0.6 * heightFactor);
+            // Update procedural shadow position & scale based on height
+            droneShadow.position.x = drone.position.x;
+            droneShadow.position.z = drone.position.z;
+            const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 25.0));
+            const shadowScale = (3.2 * heightFactor);
+            droneShadow.scale.set(shadowScale, shadowScale, 1);
+            droneShadow.material.opacity = Math.max(0.05, 0.55 * heightFactor);
 
-            if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(p => p.rotation.y += 0.6); }
+            if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
+
+            cloudGroup.children.forEach(c => {
+                c.position.x += 1.5 * dt;
+                if(c.position.x > 600) c.position.x = -600;
+            });
 
             if (cameraMode === "FPV") {
                 camera.position.copy(drone.position);
-                camera.quaternion.copy(drone.rotation);
+                const camRot = drone.rotation.clone();
+                camRot.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), CAMERA_UPTILT));
+                camera.quaternion.copy(camRot);
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
@@ -723,18 +893,27 @@
 
             mousePitch = 0; mouseRoll = 0;
 
-            // Ultra-smooth interpolation for stick overlay movement (matches DJI Virtual Flight UI physics)
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
-            let leftY = isMobile ? touchLeftValY * 32 : -(stickyThrottleValue * 2 - 1) * 22;
-            let leftX = isMobile ? touchLeftValX * 32 : (keys.d ? 1 : (keys.a ? -1 : 0)) * 22;
-            let rightX = isMobile ? touchRightValX * 32 : rawMouseX;
-            let rightY = isMobile ? touchRightValY * 32 : rawMouseY;
+            let leftY, leftX, rightX, rightY;
 
+            if (isMobile) {
+                leftY = touchLeftValY * 35;
+                leftX = touchLeftValX * 35;
+                rightX = touchRightValX * 35;
+                rightY = touchRightValY * 35;
+            } else {
+                leftY = -(stickyThrottleValue * 2 - 1) * 24; 
+                leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
+                rawMouseX *= Math.exp(-12.0 * dt);
+                rawMouseY *= Math.exp(-12.0 * dt);
+                rightX = rawMouseX;
+                rightY = rawMouseY;
+            }
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
-            renderer.render(scene, camera);
+            renderer.format = renderer.render(scene, camera);
         }
 
         animate();
