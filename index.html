@@ -301,9 +301,11 @@
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        
+        // --- BALANCED WEBGL CONFIG: LIGHT ANTIALIASING WITHOUT BLUR OR LAG ---
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
         container.appendChild(renderer.domElement);
 
         function handleResize() {
@@ -312,7 +314,7 @@
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
             resizeOSD();
         }
 
