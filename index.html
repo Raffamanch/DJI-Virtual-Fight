@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FPV PC Simulator - DJI Avata Style</title>
+    <title>FPV PC Simulator - Factory Map & Island Style</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #7ab8ff; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         
@@ -142,10 +142,10 @@
             display: none; font-weight: bold;
         }
 
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.35); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
-        p { line-height: 1.6; font-size: 14px; color: #eee; }
+        p { line-height: 1.6; font-size: 13px; color: #eee; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -153,7 +153,7 @@
 
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">NO &bull; 6/5</div>
+            <div id="menu-dot-esc">FACTORY &bull; ISLANDS</div>
             <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
@@ -167,7 +167,6 @@
             <canvas id="osd-overlay-canvas"></canvas>
         </div>
 
-        <!-- Bottom Center HUD: Motor Toggle Logo & Fullscreen Logo -->
         <div id="bottom-hud-bar">
             <button id="btn-motor-toggle" class="hud-control-btn" title="Toggle Motor">&#9881;</button>
             <button id="btn-fullscreen-toggle" class="hud-control-btn" title="Fullscreen">&#x26F6;</button>
@@ -197,13 +196,14 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Avata Simulator</h1>
+                <h1>DJI Virtual Factory & Island Map</h1>
                 <p id="instruction-text">
-                    <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Stays in position / No spring-back)<br>
-                    <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
-                    <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
-                    <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
+                    <b>[ CLICK TO START & UNMUTE SOUND ]</b><br><br>
+                    <b>[ W / S ]</b> : Throttle Up/Down (Starts at bottom, sticky position)<br>
+                    <b>[ A / D ]</b> : Yaw | <b>[ M ]</b> : Arm/Disarm Motors | <b>[ R ]</b> : Reset<br>
+                    <b>[ + / - ]</b> : Volume Up / Down (Drone FPV Motor Audio)<br>
+                    <b>[ Mouse Move ]</b> : Pitch & Roll (Spring-back mode)<br><br>
+                    <span style="color: #ffeb3b;">Features: Bright Sun, Bloom Glow, Ocean, Islands, Menara Tower, Racing Rails & Racing Gates!</span>
                 </p>
             </div>
         </div>
@@ -217,12 +217,58 @@
             document.getElementById('mobile-mode-btn').style.display = 'block';
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
-                <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle Up/Down (Starts at bottom / Stays where left)<br>
-                <b>[ Right Joystick ]</b> : Pitch & Roll (Returns to center automatically)<br>
-                <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
+                <b>[ TAP TO START & UNMUTE SOUND ]</b><br><br>
+                <b>[ Left Joystick ]</b> : Throttle (Starts bottom, sticky) & Yaw<br>
+                <b>[ Right Joystick ]</b> : Pitch & Roll (Springs back)<br>
+                <b>[ + / - Keys or UI ]</b> : Adjust Drone FPV Sound Volume<br><br>
+                <span style="color: #ffeb3b;">Ocean, Islands, Factory Warehouse, Menara, & Racing Rails Active!</span>
             `;
+        }
+
+        // --- AUDIO ENGINE (Web Audio API for No-Lag Potato FPV Sound) ---
+        let audioCtx = null;
+        let motorOsc = null;
+        let motorGain = null;
+        let masterVolume = 0.5;
+
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                motorOsc = audioCtx.createOscillator();
+                motorGain = audioCtx.createGain();
+
+                motorOsc.type = 'sawtooth';
+                motorOsc.frequency.setValueAtTime(60, audioCtx.currentTime);
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+
+                motorGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+                motorOsc.connect(filter);
+                filter.connect(motorGain);
+                motorGain.connect(audioCtx.destination);
+                motorOsc.start();
+            } catch(e) {
+                console.log("Web Audio not supported or blocked", e);
+            }
+        }
+
+        function updateAudio(throttle, armed) {
+            if (!audioCtx || !motorGain || !motorOsc) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (armed && throttle > 0.02) {
+                let targetFreq = 50 + throttle * 320;
+                let targetGain = throttle * masterVolume * 0.35;
+                motorOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.05);
+                motorGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.05);
+            } else {
+                motorGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            }
         }
 
         const osdCanvas = document.getElementById('osd-overlay-canvas');
@@ -270,37 +316,20 @@
                     }
                 }
             }
-
-            const tempData = new Uint8ClampedArray(data);
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    let idx = (y * width + x) * 4;
-                    if (data[idx + 3] === 0) {
-                        let solidNeighbors = 0;
-                        if (tempData[((y-1) * width + x) * 4 + 3] > 128) solidNeighbors++;
-                        if (tempData[((y+1) * width + x) * 4 + 3] > 128) solidNeighbors++;
-                        if (tempData[(y * width + (x-1)) * 4 + 3] > 128) solidNeighbors++;
-                        if (tempData[(y * width + (x+1)) * 4 + 3] > 128) solidNeighbors++;
-                        if (solidNeighbors === 0) {
-                            data[idx + 3] = 0;
-                        }
-                    }
-                }
-            }
-
             oCtx.putImageData(imgData, 0, 0);
         }
-
         osdImg.onload = () => { resizeOSD(); };
 
         const container = document.getElementById('canvas-container');
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xa4caff);
-        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
+        scene.background = new THREE.Color(0x6fb1ff); // Bright daylight sky
+        scene.fog = new THREE.FogExp2(0x9fc8ff, 0.0012);
 
-        const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 3000);
+        
+        // Potato device optimized renderer with crisp performance and fake bloom/brightness setup
         const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -317,151 +346,136 @@
         }
 
         window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', () => {
-            setTimeout(handleResize, 300);
-        });
-
+        window.addEventListener('orientationchange', () => { setTimeout(handleResize, 300); });
         setTimeout(handleResize, 100);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.6);
-        skyLight.position.set(100, 300, 50);
-        scene.add(skyLight);
+        // --- LIGHTING WITH BRIGHT SUN & BLOOM GLOW FEEL ---
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+        const sunLight = new THREE.DirectionalLight(0xfffae0, 1.4);
+        sunLight.position.set(250, 500, 250);
+        scene.add(sunLight);
 
-        const floorCanvas = document.createElement('canvas');
-        floorCanvas.width = 256; floorCanvas.height = 256;
-        const ctxFloor = floorCanvas.getContext('2d');
-        ctxFloor.fillStyle = '#4d7c3d'; ctxFloor.fillRect(0, 0, 256, 256);
-        for(let i=0; i<800; i++) {
-            ctxFloor.fillStyle = i % 2 === 0 ? '#568a44' : '#457037';
-            ctxFloor.fillRect(Math.random()*256, Math.random()*256, 3, 3);
-        }
-        const floorTex = new THREE.CanvasTexture(floorCanvas);
-        floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping;
-        floorTex.repeat.set(180, 180);
-
-        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
-        floorGeo.rotateX(-Math.PI / 2);
-        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
-        scene.add(new THREE.Mesh(floorGeo, floorMat));
-
-        // --- ZERO-LAG PROCEDURAL SHADOW DOT ---
-        const shadowCanvas = document.createElement('canvas');
-        shadowCanvas.width = 64; shadowCanvas.height = 64;
-        const sCtx = shadowCanvas.getContext('2d');
-        const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
-        sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        sCtx.fillStyle = sGrad;
-        sCtx.fillRect(0, 0, 64, 64);
-        const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+        // --- MAP ENVIRONMENT: OCEAN, ISLANDS, FACTORY, MENARA TOWER, RACING RAILS & GATES ---
         
-        const droneShadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
-        const droneShadowGeo = new THREE.PlaneGeometry(3.2, 3.2);
-        droneShadowGeo.rotateX(-Math.PI / 2);
-        const droneShadow = new THREE.Mesh(droneShadowGeo, droneShadowMat);
-        droneShadow.position.y = 0.02;
-        scene.add(droneShadow);
+        // 1. Ocean Water Plane
+        const oceanGeo = new THREE.PlaneGeometry(6000, 6000);
+        oceanGeo.rotateX(-Math.PI / 2);
+        const oceanMat = new THREE.MeshBasicMaterial({ color: 0x1e6091 });
+        const ocean = new THREE.Mesh(oceanGeo, oceanMat);
+        ocean.position.y = -0.5;
+        scene.add(ocean);
 
-        const cloudGroup = new THREE.Group();
-        const cloudCanvas = document.createElement('canvas');
-        cloudCanvas.width = 128; cloudCanvas.height = 128;
-        const ctxCloud = cloudCanvas.getContext('2d');
-        let grad = ctxCloud.createRadialGradient(64,64,10, 64,64,55);
-        grad.addColorStop(0, 'rgba(255,255,255,0.85)');
-        grad.addColorStop(0.4, 'rgba(240,245,255,0.6)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctxCloud.fillStyle = grad; ctxCloud.fillRect(0,0,128,128);
-        const cloudTex = new THREE.CanvasTexture(cloudCanvas);
+        // 2. Main Factory Island Ground
+        const islandGeo = new THREE.BoxGeometry(700, 4, 700);
+        const islandMat = new THREE.MeshBasicMaterial({ color: 0x588157 });
+        const island = new THREE.Mesh(islandGeo, islandMat);
+        island.position.set(0, -2, 0);
+        scene.add(island);
 
-        const cloudSpriteMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, opacity: 0.6 });
-        for(let c=0; c<45; c++) {
-            const sprite = new THREE.Sprite(cloudSpriteMat);
-            sprite.position.set((Math.random()-0.5)*1200, 180 + Math.random()*70, (Math.random()-0.5)*1200);
-            sprite.scale.set(120 + Math.random()*100, 50 + Math.random()*40, 1);
-            cloudGroup.add(sprite);
+        // Additional Side Islands
+        function createIsland(x, z, w, d) {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(w, 6, d), islandMat);
+            m.position.set(x, -3, z);
+            scene.add(m);
         }
-        scene.add(cloudGroup);
+        createIsland(-450, -450, 300, 300);
+        createIsland(450, -450, 350, 250);
+        createIsland(-400, 400, 280, 280);
+
+        // 3. Factory Warehouse Buildings (inspired by DJI Virtual Flight Factory Map)
+        const wallCanvas = document.createElement('canvas');
+        wallCanvas.width = 64; wallCanvas.height = 64;
+        const ctxW = wallCanvas.getContext('2d');
+        ctxW.fillStyle = '#adb5bd'; ctxW.fillRect(0,0,64,64);
+        ctxW.fillStyle = '#6c757d'; ctxW.fillRect(2,2,60,60);
+        const wallTex = new THREE.CanvasTexture(wallCanvas);
+        wallTex.wrapS = THREE.RepeatWrapping; wallTex.wrapT = THREE.RepeatWrapping;
+        wallTex.repeat.set(4, 12);
+        const factoryMat = new THREE.MeshBasicMaterial({ map: wallTex });
+
+        function createWarehouse(x, z, w, h, d) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), factoryMat);
+            b.position.set(x, h/2, z);
+            scene.add(b);
+            // Add obstacle bounds
+            obstacles.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2, minY: 0, maxY: h });
+        }
 
         const obstacles = [];
-        const blockCanvas = document.createElement('canvas');
-        blockCanvas.width = 64; blockCanvas.height = 64;
-        const ctxBlock = blockCanvas.getContext('2d');
-        ctxBlock.fillStyle = '#6e7a8a'; ctxBlock.fillRect(0,0,64,64);
-        ctxBlock.fillStyle = '#7a8899'; ctxBlock.fillRect(2,2,60,60);
-        const blockTex = new THREE.CanvasTexture(blockCanvas);
-        blockTex.wrapS = THREE.RepeatWrapping; blockTex.wrapT = THREE.RepeatWrapping;
-        blockTex.repeat.set(2, 8);
+        createWarehouse(-120, -100, 90, 50, 120);
+        createWarehouse(120, -120, 100, 60, 100);
+        createWarehouse(-100, 150, 120, 45, 80);
+        createWarehouse(130, 130, 80, 70, 90);
 
-        const wallMat = new THREE.MeshBasicMaterial({ map: blockTex });
-        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff1144 });
+        // 4. Menara Tower (Tall Skyscraper Landmark)
+        const menaraMat = new THREE.MeshBasicMaterial({ color: 0x343a40 });
+        const menaraGlass = new THREE.MeshBasicMaterial({ color: 0x48cae4 });
+        const menara = new THREE.Mesh(new THREE.BoxGeometry(50, 280, 50), menaraMat);
+        menara.position.set(0, 140, -300);
+        scene.add(menara);
+        obstacles.push({ minX: -25, maxX: 25, minZ: -325, maxZ: -275, minY: 0, maxY: 280 });
 
-        function createTrackTower(x, z, width, height, depth) {
-            const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
-            mesh.position.set(x, height / 2, z);
-            scene.add(mesh);
-            obstacles.push({ minX: x - width/2, maxX: x + width/2, minZ: z - depth/2, maxZ: z + depth/2, minY: 0, maxY: height });
-        }
-
+        // 5. Racing Rails & FPV Challenge Gates
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff0054 }); // Bright neon glow feel
         function createVelociGate(x, z, rotY) {
-            const gateGroup = new THREE.Group(); const gateW = 15, gateH = 11, thick = 0.7;
+            const gateGroup = new THREE.Group(); 
+            const gateW = 16, gateH = 12, thick = 0.8;
             const top = new THREE.Mesh(new THREE.BoxGeometry(gateW, thick, thick), gateMat); top.position.y = gateH;
             const left = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); left.position.set(-gateW/2, gateH/2, 0);
             const right = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); right.position.set(gateW/2, gateH/2, 0);
-            gateGroup.add(top, left, right); gateGroup.position.set(x, 0, z); gateGroup.rotation.y = rotY; scene.add(gateGroup);
+            gateGroup.add(top, left, right); 
+            gateGroup.position.set(x, 0, z); 
+            gateGroup.rotation.y = rotY; 
+            scene.add(gateGroup);
 
-            const isRotated = Math.abs(rotY) > 0.1; const sizeX = isRotated ? thick : gateW; const sizeZ = isRotated ? gateW : thick;
-            const lx = x + (isRotated ? 0 : -gateW/2); const lz = z + (isRotated ? -gateW/2 : 0);
-            obstacles.push({ minX: lx - 0.5, maxX: lx + 0.5, minZ: lz - 0.5, maxZ: lz + 0.5, minY: 0, maxY: gateH });
-            const rx = x + (isRotated ? 0 : gateW/2); const rz = z + (isRotated ? gateW/2 : 0);
-            obstacles.push({ minX: rx - 0.5, maxX: rx + 0.5, minZ: rz - 0.5, maxZ: rz + 0.5, minY: 0, maxY: gateH });
-            obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.4, maxY: gateH + 0.4 });
+            const isRotated = Math.abs(rotY) > 0.1; 
+            const sizeX = isRotated ? thick : gateW; 
+            const sizeZ = isRotated ? gateW : thick;
+            obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.5, maxY: gateH + 0.5 });
         }
 
-        createTrackTower(-60, -100, 30, 70, 30);
-        createTrackTower(70, -120, 35, 90, 35);
-        createTrackTower(-90, 20, 25, 55, 25);
-        createTrackTower(80, 40, 30, 65, 30);
+        // Racing Track Gates Layout
+        createVelociGate(0, -40, 0);
+        createVelociGate(-60, -110, Math.PI / 4);
+        createVelociGate(60, -110, -Math.PI / 4);
+        createVelociGate(0, -180, 0);
+        createVelociGate(-120, -250, Math.PI / 2);
+        createVelociGate(120, -250, Math.PI / 2);
 
-        createVelociGate(0, -20, 0);
-        createVelociGate(-35, -60, Math.PI / 4);
-        createVelociGate(35, -60, -Math.PI / 4);
-        createVelociGate(0, -120, 0);
-        createVelociGate(-50, -170, Math.PI / 2);
-        createVelociGate(50, -170, Math.PI / 2);
-        createVelociGate(0, -240, 0);
+        // Racing Rails (Guiding track pipes/bars)
+        const railMat = new THREE.MeshBasicMaterial({ color: 0xffb703 });
+        function createRail(x1, z1, x2, z2) {
+            const len = Math.hypot(x2 - x1, z2 - z1);
+            const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, len, 8), railMat);
+            rail.rotation.x = Math.PI / 2;
+            rail.position.set((x1+x2)/2, 6, (z1+z2)/2);
+            rail.lookAt(x2, 6, z2);
+            scene.add(rail);
+        }
+        createRail(0, -20, -60, -90);
+        createRail(-60, -90, 0, -160);
+        createRail(0, -160, 80, -220);
 
-        // --- DJI AVATA 1 3D MODEL CONSTRUCTION ---
+        // --- DJI AVATA 3D MODEL WITH ZERO-LAG SHADOW ---
         const droneGroup = new THREE.Group();
-        
         const bodyMat = new THREE.MeshBasicMaterial({ color: 0x1c1e22 });
-        const accentMat = new THREE.MeshBasicMaterial({ color: 0x2e323b });
         const orangeAccent = new THREE.MeshBasicMaterial({ color: 0xff6600 });
         const glassLensMat = new THREE.MeshBasicMaterial({ color: 0x112244 });
 
         const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
-        fuselage.position.set(0, 0, 0);
         droneGroup.add(fuselage);
 
         const ductMaterial = new THREE.MeshBasicMaterial({ color: 0x22252b, side: THREE.DoubleSide });
         const propMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
-
         const propMeshes = [];
-        const ductPositions = [
-            { x: 0.95, z: 0.85 },   
-            { x: -0.95, z: 0.85 },  
-            { x: 0.95, z: -0.85 },  
-            { x: -0.95, z: -0.85 }   
-        ];
+        const ductPositions = [{ x: 0.95, z: 0.85 }, { x: -0.95, z: 0.85 }, { x: 0.95, z: -0.85 }, { x: -0.95, z: -0.85 }];
 
         ductPositions.forEach(pos => {
-            const ductGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.4, 24, 1, true);
-            const duct = new THREE.Mesh(ductGeo, ductMaterial);
+            const duct = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.4, 16, 1, true), ductMaterial);
             duct.position.set(pos.x, 0, pos.z);
             droneGroup.add(duct);
 
-            const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 8, 24);
-            const ring = new THREE.Mesh(ringGeo, orangeAccent);
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.04, 6, 16), orangeAccent);
             ring.rotation.x = Math.PI / 2;
             ring.position.set(pos.x, 0, pos.z);
             droneGroup.add(ring);
@@ -472,17 +486,29 @@
             propMeshes.push(prop);
         });
 
-        const gimbalHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), accentMat);
-        gimbalHousing.position.set(0, -0.05, 0.95);
-        droneGroup.add(gimbalHousing);
-
-        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16), glassLensMat);
+        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 12), glassLensMat);
         cameraLens.rotation.x = Math.PI / 2;
         cameraLens.position.set(0, -0.05, 1.2);
         droneGroup.add(cameraLens);
-
         scene.add(droneGroup);
 
+        // Potato-optimized Real-feeling Shadow Dot
+        const shadowCanvas = document.createElement('canvas');
+        shadowCanvas.width = 64; shadowCanvas.height = 64;
+        const sCtx = shadowCanvas.getContext('2d');
+        const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+        sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        sCtx.fillStyle = sGrad;
+        sCtx.fillRect(0, 0, 64, 64);
+        const droneShadow = new THREE.Mesh(
+            new THREE.PlaneGeometry(3.2, 3.2).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shadowCanvas), transparent: true, depthWrite: false })
+        );
+        droneShadow.position.y = 0.03;
+        scene.add(droneShadow);
+
+        // --- FLIGHT PHYSICS & STATE ---
         const drone = {
             position: new THREE.Vector3(0, 0.3, 45), 
             velocity: new THREE.Vector3(0, 0, 0),
@@ -493,8 +519,8 @@
         const MODES = {
             1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.5 },
             2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.8 },
-            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, hasAutoLevel: false },
-            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
+            3: { name: "MANUAL", maxThrust: 26.0, drag: 0.022, hasAutoLevel: false },
+            4: { name: "ACRO",   maxThrust: 26.0, drag: 0.009, hasAutoLevel: false }
         };
         let activeMode = 1;
         let cameraMode = "FPV";
@@ -509,24 +535,19 @@
 
         let touchLeftValX = 0, touchLeftValY = 1.0; 
         let touchRightValX = 0, touchRightValY = 0;
-
         let stickyThrottleValue = 0.0; 
 
         const MOUSE_SENSITIVITY = 0.0025; 
-        const THROTTLE_CHANGE_SPEED = 0.8; 
+        const THROTTLE_CHANGE_SPEED = 1.2; // Faster keyboard throttle response for quick launch
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
-        
-        const CAMERA_UPTILT = 0 * (Math.PI / 180);
         let currentThrottle = 0;
 
+        // --- CONTROLS & SHORTCUTS ---
         const motorBtn = document.getElementById('btn-motor-toggle');
         function toggleMotors() {
+            initAudio();
             if (!isArmed) {
-                const modeCfg = MODES[activeMode];
-                if (!modeCfg.hasAutoLevel && currentThrottle > 0.05) {
-                    return;
-                }
                 isArmed = true;
             } else {
                 isArmed = false;
@@ -534,86 +555,46 @@
                 stickyThrottleValue = 0;
             }
         }
-        motorBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleMotors();
-        });
-
-        const fullscreenBtn = document.getElementById('btn-fullscreen-toggle');
-        fullscreenBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                const elem = document.documentElement;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(() => {});
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                }
-            }
-        });
-
-        function startGameSession() {
-            handleResize();
-            inst.style.display = 'none';
-            if (!isMobile) {
-                container.requestPointerLock();
-            }
-        }
-        container.addEventListener('click', startGameSession);
-        inst.addEventListener('click', startGameSession);
-
-        document.addEventListener('pointerlockchange', () => { 
-            if (!isMobile) {
-                const isLocked = (document.pointerLockElement === container);
-                inst.style.display = isLocked ? 'none' : 'flex';
-                if (!isLocked) { rawMouseX = 0; rawMouseY = 0; }
-            }
-        });
+        motorBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMotors(); });
 
         document.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'm') {
-                toggleMotors();
-                return;
-            }
+            initAudio();
+            if (e.key.toLowerCase() === 'm') { toggleMotors(); return; }
             if (['1','2','3','4'].includes(e.key)) {
                 activeMode = parseInt(e.key);
-                updateMobileModeButtonText();
+                document.getElementById('mobile-mode-btn').innerText = `MODE: ${MODES[activeMode].name}`;
                 return;
             }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
+            
+            // Volume Shortcuts (+ and - keys)
+            if (e.key === '+' || e.key === '=') {
+                masterVolume = Math.min(1.0, masterVolume + 0.1);
+                console.log("Volume:", Math.round(masterVolume * 100) + "%");
+                return;
+            }
+            if (e.key === '-' || e.key === '_') {
+                masterVolume = Math.max(0.0, masterVolume - 0.1);
+                console.log("Volume:", Math.round(masterVolume * 100) + "%");
+                return;
+            }
+
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true;
             if (key === 'r') resetDrone();
         });
-        document.addEventListener('keyup', (e) => { const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
+
+        document.addEventListener('keyup', (e) => { 
+            const key = e.key.toLowerCase(); 
+            if (key in keys) keys[key] = false; 
+        });
+
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
             mousePitch = -e.movementY * MOUSE_SENSITIVITY;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
-            
-            rawMouseX += e.movementX * 0.4;
-            rawMouseY += e.movementY * 0.4;
-            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
-            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
-        });
-
-        function updateMobileModeButtonText() {
-            const btn = document.getElementById('mobile-mode-btn');
-            if (btn) {
-                btn.innerText = `MODE: ${MODES[activeMode].name}`;
-            }
-        }
-
-        document.getElementById('mobile-mode-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            activeMode = (activeMode % 4) + 1;
-            updateMobileModeButtonText();
+            rawMouseX = Math.max(-25, Math.min(25, rawMouseX + e.movementX * 0.4));
+            rawMouseY = Math.max(-25, Math.min(25, rawMouseY + e.movementY * 0.4));
         });
 
         function setupTouchJoystick(padId, knobId, callback, isStickyY = false) {
@@ -624,6 +605,7 @@
 
             pad.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                initAudio();
                 if (activeTouchId === null) {
                     const touch = e.changedTouches[0];
                     activeTouchId = touch.identifier;
@@ -635,9 +617,7 @@
                 e.preventDefault();
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     const touch = e.changedTouches[i];
-                    if (touch.identifier === activeTouchId) {
-                        updateStick(touch);
-                    }
+                    if (touch.identifier === activeTouchId) updateStick(touch);
                 }
             }, { passive: false });
 
@@ -659,17 +639,10 @@
 
             function updateStick(touch) {
                 const rect = pad.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                let dx = touch.clientX - centerX;
-                let dy = touch.clientY - centerY;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist > maxDist) {
-                    dx = (dx / dist) * maxDist;
-                    dy = (dy / dist) * maxDist;
-                }
-
+                let dx = touch.clientX - (rect.left + rect.width / 2);
+                let dy = touch.clientY - (rect.top + rect.height / 2);
+                const dist = Math.hypot(dx, dy);
+                if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
                 knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 callback(dx / maxDist, dy / maxDist);
             }
@@ -677,64 +650,66 @@
 
         if (isMobile) {
             const leftKnob = document.getElementById('touch-left-knob');
-            if (leftKnob) {
-                leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
-            }
-
+            if (leftKnob) leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
             setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => {
-                touchLeftValX = x;
-                if (y !== null) touchLeftValY = y;
+                touchLeftValX = x; if (y !== null) touchLeftValY = y;
             }, true);
             setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => {
-                touchRightValX = x;
-                touchRightValY = y;
+                touchRightValX = x; touchRightValY = y;
             }, false);
         }
 
-        document.getElementById('btn-switch-view').addEventListener('click', (e) => {
-            e.stopPropagation();
-            cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV";
-        });
-        document.getElementById('btn-retry').addEventListener('click', (e) => {
-            e.stopPropagation();
-            resetDrone();
-        });
-        document.getElementById('btn-pause').addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isMobile) document.exitPointerLock();
-            inst.style.display = 'flex';
+        document.getElementById('btn-switch-view').addEventListener('click', (e) => { e.stopPropagation(); cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; });
+        document.getElementById('btn-retry').addEventListener('click', (e) => { e.stopPropagation(); resetDrone(); });
+        document.getElementById('btn-pause').addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            if (!isMobile) document.exitPointerLock(); 
+            inst.style.display = 'flex'; 
         });
 
         function resetDrone() {
-            drone.position.set(0, 0.3, 45); drone.velocity.set(0, 0, 0); drone.rotation.set(0, 0, 0, 1); drone.euler.set(0, 0, 0);
+            drone.position.set(0, 0.3, 45); 
+            drone.velocity.set(0, 0, 0); 
+            drone.rotation.set(0, 0, 0, 1); 
+            drone.euler.set(0, 0, 0);
             currentThrottle = 0; stickyThrottleValue = 0; tumbleRotationVelocity.set(0, 0, 0);
             isSpawnedSafe = true; rawMouseX = 0; rawMouseY = 0;
-            
-            touchLeftValX = 0; 
-            touchLeftValY = 1.0; 
+            touchLeftValX = 0; touchLeftValY = 1.0; 
             touchRightValX = 0; touchRightValY = 0;
 
             const leftKnob = document.getElementById('touch-left-knob');
             if(leftKnob) leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))';
-            
             const rightKnob = document.getElementById('touch-right-knob');
             if(rightKnob) rightKnob.style.transform = 'translate(-50%, -50%)';
-
             handleResize();
         }
 
-        function handleCollisions() {
-            const px = drone.position.x; const py = drone.position.y; const pz = drone.position.z; 
-            const buffer = 0.8; 
+        function startGameSession() {
+            initAudio();
+            handleResize();
+            inst.style.display = 'none';
+            if (!isMobile) container.requestPointerLock();
+        }
+        container.addEventListener('click', startGameSession);
+        inst.addEventListener('click', startGameSession);
 
+        document.addEventListener('pointerlockchange', () => { 
+            if (!isMobile) {
+                const isLocked = (document.pointerLockElement === container);
+                inst.style.display = isLocked ? 'none' : 'flex';
+                if (!isLocked) { rawMouseX = 0; rawMouseY = 0; }
+            }
+        });
+
+        function handleCollisions() {
+            const px = drone.position.x, py = drone.position.y, pz = drone.position.z; 
+            const buffer = 0.8; 
             for(let i = 0; i < obstacles.length; i++) {
                 const obs = obstacles[i];
                 if(px + buffer > obs.minX && px - buffer < obs.maxX && pz + buffer > obs.minZ && pz - buffer < obs.maxZ) {
                     if(py + buffer > obs.minY && py - buffer < obs.maxY) {
                         let overlapX = Math.min(obs.maxX - (px - buffer), (px + buffer) - obs.minX);
                         let overlapZ = Math.min(obs.maxZ - (pz - buffer), (pz + buffer) - obs.minZ);
-                        let speedH = Math.sqrt(drone.velocity.x * drone.velocity.x + drone.velocity.z * drone.velocity.z);
-
                         if (overlapX < overlapZ) {
                             drone.position.x += (px > (obs.minX + obs.maxX)/2) ? overlapX : -overlapX;
                             drone.velocity.x *= -0.4;
@@ -742,14 +717,8 @@
                             drone.position.z += (pz > (obs.minZ + obs.maxZ)/2) ? overlapZ : -overlapZ;
                             drone.velocity.z *= -0.4;
                         }
-
-                        if (speedH > 4.5) {
-                            tumbleRotationVelocity.set((Math.random() - 0.5) * 60.0, (Math.random() - 0.5) * 40.0, (Math.random() - 0.5) * 60.0);
-                            drone.velocity.y = speedH * 0.45 + 2.5; 
-                        } else {
-                            drone.velocity.y = 2.8; 
-                            tumbleRotationVelocity.set((Math.random()-0.5)*9, (Math.random()-0.5)*9, (Math.random()-0.5)*9);
-                        }
+                        drone.velocity.y = 2.8; 
+                        tumbleRotationVelocity.set((Math.random()-0.5)*15, (Math.random()-0.5)*15, (Math.random()-0.5)*15);
                     }
                 }
             }
@@ -762,9 +731,7 @@
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
-            let inputYaw = 0;
-            let targetPitch = 0;
-            let targetRoll = 0;
+            let inputYaw = 0, targetPitch = 0, targetRoll = 0;
 
             if (!isArmed) {
                 currentThrottle = 0;
@@ -780,15 +747,15 @@
                 }
             }
 
+            updateAudio(currentThrottle, isArmed);
+
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
                 targetPitch = -touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
                 targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
-
                 drone.euler.y -= inputYaw;
                 if (modeCfg.hasAutoLevel) {
-                    drone.euler.x = targetPitch;
-                    drone.euler.z = targetRoll;
+                    drone.euler.x = targetPitch; drone.euler.z = targetRoll;
                     drone.rotation.setFromEuler(drone.euler);
                 } else {
                     const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(targetPitch * dt, -inputYaw, targetRoll * dt, 'YXZ'));
@@ -798,19 +765,16 @@
                 if (document.pointerLockElement === container) {
                     if (keys.a) inputYaw = -YAW_RATE * dt;
                     if (keys.d) inputYaw = YAW_RATE * dt;
-
                     drone.euler.y -= inputYaw;
 
                     if (modeCfg.hasAutoLevel) {
                         drone.euler.x = THREE.MathUtils.clamp(drone.euler.x + mousePitch, -modeCfg.maxAngle, modeCfg.maxAngle);
                         drone.euler.z = THREE.MathUtils.clamp(drone.euler.z - mouseRoll, -modeCfg.maxAngle, modeCfg.maxAngle);
-                        if (Math.abs(mousePitch) < 0.001) drone.euler.x *= Math.exp(-6.0 * dt);
-                        if (Math.abs(mouseRoll) < 0.001) drone.euler.z *= Math.exp(-6.0 * dt);
+                        drone.euler.x *= Math.exp(-6.0 * dt);
+                        drone.euler.z *= Math.exp(-6.0 * dt);
                         drone.rotation.setFromEuler(drone.euler);
                     } else {
-                        const pitchRate = -mousePitch * 30.0;
-                        const rollRate = -mouseRoll * 30.0;
-                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchRate * dt, -inputYaw, rollRate * dt, 'YXZ'));
+                        const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-mousePitch * 30.0 * dt, -inputYaw, -mouseRoll * 30.0 * dt, 'YXZ'));
                         drone.rotation.multiply(deltaRotation).normalize();
                     }
                 } else {
@@ -819,70 +783,41 @@
                 }
             }
 
-            if (drone.position.y > 1.5) { isSpawnedSafe = false; }
+            if (drone.position.y > 1.5) isSpawnedSafe = false;
 
             if (tumbleRotationVelocity.lengthSq() > 0.001) {
-                const tumbleQuaternion = new THREE.Quaternion().setFromEuler(
-                    new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ')
-                );
-                drone.rotation.multiply(tumbleQuaternion).normalize();
-                tumbleRotationVelocity.multiplyScalar(Math.exp(-2.4 * dt)); 
-                if (modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.4) { 
-                    drone.euler.setFromQuaternion(drone.rotation, 'YXZ'); 
-                }
+                drone.rotation.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(tumbleRotationVelocity.z * dt, tumbleRotationVelocity.y * dt, tumbleRotationVelocity.x * dt, 'YXZ'))).normalize();
+                tumbleRotationVelocity.multiplyScalar(Math.exp(-2.4 * dt));
             }
 
             const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(drone.rotation);
             const thrust = localUp.multiplyScalar(currentThrottle * modeCfg.maxThrust);
-            const gravityForce = new THREE.Vector3(0, -GRAVITY, 0);
-
-            const accel = new THREE.Vector3().addVectors(thrust, gravityForce);
+            const accel = new THREE.Vector3().addVectors(thrust, new THREE.Vector3(0, -GRAVITY, 0));
             drone.velocity.addScaledVector(drone.velocity, -modeCfg.drag);
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
             if (drone.position.y < 0.3) {
-                drone.position.y = 0.3; 
-                if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
-                    tumbleRotationVelocity.set((Math.random()-0.5)*45, (Math.random()-0.5)*25, (Math.random()-0.5)*45);
-                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.38 + 1.2;
-                } else if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 0.5) {
-                    drone.velocity.y = 1.8;
-                    tumbleRotationVelocity.set((Math.random()-0.5)*6, (Math.random()-0.5)*6, (Math.random()-0.5)*6);
-                } else {
-                    drone.velocity.y = 0;
-                }
+                drone.position.y = 0.3;
+                drone.velocity.y = 0;
                 drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
-                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.2) { 
-                    drone.euler.x = 0; drone.euler.z = 0; drone.rotation.setFromEuler(drone.euler); 
-                }
             }
 
             handleCollisions();
-
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            // Update procedural shadow position & scale based on height
-            droneShadow.position.x = drone.position.x;
-            droneShadow.position.z = drone.position.z;
-            const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 25.0));
-            const shadowScale = (3.2 * heightFactor);
-            droneShadow.scale.set(shadowScale, shadowScale, 1);
-            droneShadow.material.opacity = Math.max(0.05, 0.55 * heightFactor);
+            // Update potato real shadow dot under drone
+            droneShadow.position.set(drone.position.x, 0.03, drone.position.z);
+            const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 30.0));
+            droneShadow.scale.set(3.2 * heightFactor, 3.2 * heightFactor, 1);
+            droneShadow.material.opacity = Math.max(0.05, 0.6 * heightFactor);
 
-            if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
-
-            cloudGroup.children.forEach(c => {
-                c.position.x += 1.5 * dt;
-                if(c.position.x > 600) c.position.x = -600;
-            });
+            if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(p => p.rotation.y += 0.6); }
 
             if (cameraMode === "FPV") {
                 camera.position.copy(drone.position);
-                const camRot = drone.rotation.clone();
-                camRot.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), CAMERA_UPTILT));
-                camera.quaternion.copy(camRot);
+                camera.quaternion.copy(drone.rotation);
                 droneGroup.visible = false;
             } else {
                 droneGroup.visible = true;
@@ -895,25 +830,15 @@
 
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
-            let leftY, leftX, rightX, rightY;
+            let leftY = isMobile ? touchLeftValY * 35 : -(stickyThrottleValue * 2 - 1) * 24;
+            let leftX = isMobile ? touchLeftValX * 35 : (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
+            let rightX = isMobile ? touchRightValX * 35 : rawMouseX;
+            let rightY = isMobile ? touchRightValY * 35 : rawMouseY;
 
-            if (isMobile) {
-                leftY = touchLeftValY * 35;
-                leftX = touchLeftValX * 35;
-                rightX = touchRightValX * 35;
-                rightY = touchRightValY * 35;
-            } else {
-                leftY = -(stickyThrottleValue * 2 - 1) * 24; 
-                leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
-                rawMouseX *= Math.exp(-12.0 * dt);
-                rawMouseY *= Math.exp(-12.0 * dt);
-                rightX = rawMouseX;
-                rightY = rawMouseY;
-            }
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
-            renderer.format = renderer.render(scene, camera);
+            renderer.render(scene, camera);
         }
 
         animate();
