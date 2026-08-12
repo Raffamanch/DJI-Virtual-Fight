@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FPV PC Simulator - Ultimate Factory & Island Map</title>
+    <title>FPV PC Simulator - DJI Virtual Factory Authentic</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #050811; font-family: monospace; position: fixed; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000000; font-family: monospace; position: fixed; }
         #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
         
@@ -30,21 +30,24 @@
         }
         .hud-control-btn:hover { background: rgba(40, 50, 70, 0.95); }
 
+        /* AUTHENTIC DJI VIRTUAL FLIGHT STYLE RC STICKS OVERLAY */
         #rc-sticks-container {
-            position: absolute; bottom: 75px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 18px; z-index: 7; pointer-events: none;
+            position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 24px; z-index: 7; pointer-events: none;
         }
         .stick-box {
-            width: 82px; height: 82px; background: rgba(40, 45, 55, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 9px;
-            position: relative; box-shadow: 0 5px 12px rgba(0,0,0,0.33);
+            width: 90px; height: 90px; background: rgba(15, 20, 30, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50%;
+            position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
         }
-        .stick-cross-h { position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3); }
-        .stick-cross-v { position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3); }
+        .stick-cross-h { position: absolute; top: 50%; left: 15%; width: 70%; height: 1px; background: rgba(255, 255, 255, 0.25); }
+        .stick-cross-v { position: absolute; top: 15%; left: 50%; width: 1px; height: 70%; background: rgba(255, 255, 255, 0.25); }
         .stick-ball {
-            position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
+            position: absolute; width: 18px; height: 18px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8), 0 2px 5px rgba(0,0,0,0.6);
+            transition: transform 0.03s cubic-bezier(0.1, 0.9, 0.2, 1);
         }
 
         #touch-controls {
@@ -83,25 +86,18 @@
             display: none; font-weight: bold;
         }
 
-        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.35); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
-        #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
-        h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
-        p { line-height: 1.6; font-size: 13px; color: #eee; }
+        #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.45); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
+        #menu-content { background: rgba(20, 25, 35, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); pointer-events: auto; max-width: 90%; }
+        h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #00d2ff; }
+        p { line-height: 1.6; font-size: 13px; color: #ddd; }
     </style>
-    <!-- Three.js & Postprocessing library for real Potato-friendly Bloom & ToneMapping -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
 </head>
 <body>
 
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">MASSIVE FACTORY &bull; ISLANDS</div>
+            <div id="menu-dot-esc">DJI VIRTUAL FLIGHT &bull; FACTORY SPAWN</div>
             <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
@@ -120,6 +116,7 @@
             <button id="btn-fullscreen-toggle" class="hud-control-btn" title="Fullscreen">&#x26F6;</button>
         </div>
 
+        <!-- Authentic Circular Smooth DJI Sticks Overlay -->
         <div id="rc-sticks-container">
             <div class="stick-box">
                 <div class="stick-cross-h"></div>
@@ -140,14 +137,14 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Virtual Massive Factory & Island Map</h1>
+                <h1>DJI Virtual Flight - Factory Spawn & Authentic Look</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START & UNMUTE SOUND ]</b><br><br>
-                    <b>[ W / S ]</b> : Throttle Up/Down (Quick Launch Optimized)<br>
-                    <b>[ A / D ]</b> : Yaw | <b>[ M ]</b> : Arm/Disarm Motors | <b>[ R ]</b> : Reset<br>
-                    <b>[ + / - ]</b> : Volume Up / Down (Drone FPV Motor Audio)<br>
-                    <b>[ Mouse Move ]</b> : Pitch & Roll (Instantly centers back when mouse stops)<br><br>
-                    <span style="color: #ffeb3b;">Features: Blinding Bright Sun, Real Bloom Glow, Massive Ocean, Floating Clouds, Giant Islands, Skyscrapers & Extended Racing Track!</span>
+                    <b>[ W / S ]</b> : Throttle Up/Down (Quick Launch)<br>
+                    <b>[ A / D ]</b> : Yaw | <b>[ M ]</b> : Arm Motors | <b>[ R ]</b> : Reset<br>
+                    <b>[ + / - ]</b> : Volume Up / Down<br>
+                    <b>[ Mouse Move ]</b> : Pitch & Roll (Instantly centers back)<br><br>
+                    <span style="color: #00d2ff;">Factory Warehouse Interior Spawn, Natural Daylight Lighting (No Over-Saturation), Ultra-Smooth RC Sticks & Massive Racing Track!</span>
                 </p>
             </div>
         </div>
@@ -164,8 +161,8 @@
                 <b>[ TAP TO START & UNMUTE SOUND ]</b><br><br>
                 <b>[ Left Joystick ]</b> : Throttle & Yaw<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll (Springs back)<br>
-                <b>[ + / - Keys or UI ]</b> : Adjust Drone FPV Sound Volume<br><br>
-                <span style="color: #ffeb3b;">Massive Ocean, Clouds, Islands, Factory Warehouse & Extended Racing Circuit Active!</span>
+                <b>[ + / - Keys ]</b> : Adjust Drone FPV Sound Volume<br><br>
+                <span style="color: #00d2ff;">Factory Spawn, Natural Lighting & Smooth HUD Active!</span>
             `;
         }
 
@@ -195,9 +192,7 @@
                 filter.connect(motorGain);
                 motorGain.connect(audioCtx.destination);
                 motorOsc.start();
-            } catch(e) {
-                console.log("Web Audio not supported", e);
-            }
+            } catch(e) { console.log("Audio init error", e); }
         }
 
         function updateAudio(throttle, armed) {
@@ -243,9 +238,9 @@
                 } else {
                     let brightness = (r + g + b) / 3;
                     if (brightness > 60) {
-                        data[i]   = Math.min(255, r * 1.2);
-                        data[i+1] = Math.min(255, g * 1.2);
-                        data[i+2] = Math.min(255, b * 1.2);
+                        data[i]   = Math.min(255, r * 1.1);
+                        data[i+1] = Math.min(255, g * 1.1);
+                        data[i+2] = Math.min(255, b * 1.1);
                         data[i+3] = 255;
                     } else {
                         data[i+3] = 0;
@@ -260,24 +255,19 @@
         const inst = document.getElementById('instructions');
         
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x4aa0ff); // Vibrant daylight sky
-        scene.fog = new THREE.FogExp2(0xa1caff, 0.0008);
+        // Natural DJI Virtual Flight sky color (Clean professional blue, no exaggerated neon or over-saturation)
+        scene.background = new THREE.Color(0x6ba4e8);
+        scene.fog = new THREE.FogExp2(0x8cb8eb, 0.001);
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 5000);
         
         const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
+        // Professional balanced color rendering without overblown bloom highlights
+        renderer.toneMapping = THREE.LinearToneMapping;
+        renderer.toneMappingExposure = 1.0;
         container.appendChild(renderer.domElement);
-
-        // --- POSTPROCESSING BLOOM SETUP FOR GLOW ---
-        const renderScene = new THREE.RenderPass(scene, camera);
-        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.8, 0.4, 0.85);
-        const composer = new THREE.EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
 
         function handleResize() {
             const width = window.innerWidth;
@@ -285,7 +275,6 @@
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
             renderer.setSize(width, height);
-            composer.setSize(width, height);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
             resizeOSD();
         }
@@ -294,57 +283,22 @@
         window.addEventListener('orientationchange', () => { setTimeout(handleResize, 300); });
         setTimeout(handleResize, 100);
 
-        // --- LIGHTING: BLINDING BRIGHT SUN & GLOW ---
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const sunLight = new THREE.DirectionalLight(0xfffae0, 2.2);
-        sunLight.position.set(400, 800, 400);
+        // --- NATURAL PROFESSIONAL LIGHTING ---
+        scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+        const sunLight = new THREE.DirectionalLight(0xfffff0, 1.5);
+        sunLight.position.set(300, 600, 300);
         scene.add(sunLight);
 
-        // Visible Sun Glowing Sphere in Sky
-        const sunMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(60, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffffee })
-        );
-        sunMesh.position.set(1200, 1800, 1200);
-        scene.add(sunMesh);
-
-        // --- MASSIVE MAP ENVIRONMENT: OCEAN, CLOUDS, ISLANDS, FACTORY, TOWERS & EXTENDED RACING ---
+        // --- MAP ENVIRONMENT: FACTORY SPAWN, WAREHOUSES & RACING TRACK ---
         
-        // 1. Massive Ocean Water Plane
-        const oceanGeo = new THREE.PlaneGeometry(10000, 10000);
-        oceanGeo.rotateX(-Math.PI / 2);
-        const oceanMat = new THREE.MeshBasicMaterial({ color: 0x145374 });
-        const ocean = new THREE.Mesh(oceanGeo, oceanMat);
-        ocean.position.y = -0.5;
-        scene.add(ocean);
+        // Ground plane
+        const groundMat = new THREE.MeshBasicMaterial({ color: 0x4a5d4e });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(8000, 8000), groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.5;
+        scene.add(ground);
 
-        // 2. Volumetric-style Procedural Clouds in Sky
-        const cloudGroup = new THREE.Group();
-        const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65 });
-        for (let i = 0; i < 30; i++) {
-            const cloud = new THREE.Mesh(new THREE.BoxGeometry(120 + Math.random()*200, 25, 60 + Math.random()*100), cloudMat);
-            cloud.position.set((Math.random() - 0.5) * 3500, 350 + Math.random() * 150, (Math.random() - 0.5) * 3500);
-            cloudGroup.add(cloud);
-        }
-        scene.add(cloudGroup);
-
-        // 3. Expanded Main Factory Island & Archipelagos
-        const islandMat = new THREE.MeshBasicMaterial({ color: 0x386641 });
-        const mainIsland = new THREE.Mesh(new THREE.BoxGeometry(1600, 4, 1600), islandMat);
-        mainIsland.position.set(0, -2, 0);
-        scene.add(mainIsland);
-
-        function createIsland(x, z, w, d) {
-            const m = new THREE.Mesh(new THREE.BoxGeometry(w, 8, d), islandMat);
-            m.position.set(x, -4, z);
-            scene.add(m);
-        }
-        createIsland(-900, -900, 600, 600);
-        createIsland(900, -900, 700, 500);
-        createIsland(-900, 900, 650, 650);
-        createIsland(900, 900, 600, 700);
-
-        // 4. Factory Warehouses & Obstacles
+        // Factory Warehouse Interior Spawn & Surroundings
         const wallCanvas = document.createElement('canvas');
         wallCanvas.width = 64; wallCanvas.height = 64;
         const ctxW = wallCanvas.getContext('2d');
@@ -352,7 +306,7 @@
         ctxW.fillStyle = '#495057'; ctxW.fillRect(2,2,60,60);
         const wallTex = new THREE.CanvasTexture(wallCanvas);
         wallTex.wrapS = THREE.RepeatWrapping; wallTex.wrapT = THREE.RepeatWrapping;
-        wallTex.repeat.set(6, 16);
+        wallTex.repeat.set(4, 12);
         const factoryMat = new THREE.MeshBasicMaterial({ map: wallTex });
 
         const obstacles = [];
@@ -363,26 +317,23 @@
             obstacles.push({ minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2, minY: 0, maxY: h });
         }
 
-        createWarehouse(-250, -200, 140, 70, 200);
-        createWarehouse(250, -220, 160, 80, 180);
-        createWarehouse(-220, 280, 180, 60, 140);
-        createWarehouse(260, 250, 140, 90, 160);
-        createWarehouse(0, -450, 250, 100, 120);
+        // Factory Spawn Area: Enclosed warehouse hangars simulating DJI Virtual Flight Factory map layout
+        createWarehouse(0, -80, 160, 45, 100);   // Back wall
+        createWarehouse(-120, 0, 45, 45, 200);   // Left wall structure
+        createWarehouse(120, 0, 45, 45, 200);    // Right wall structure
+        createWarehouse(0, 100, 160, 45, 40);    // Front entrance structure
+        // Roof over spawn hangar to give true interior factory feel
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(170, 2, 210), new THREE.MeshBasicMaterial({ color: 0x33373d }));
+        roof.position.set(0, 46, 0);
+        scene.add(roof);
 
-        // 5. Skyscrapers & Menara Towers
-        const towerMat = new THREE.MeshBasicMaterial({ color: 0x212529 });
-        function createTower(x, z, h) {
-            const t = new THREE.Mesh(new THREE.BoxGeometry(60, h, 60), towerMat);
-            t.position.set(x, h/2, z);
-            scene.add(t);
-            obstacles.push({ minX: x - 30, maxX: x + 30, minZ: z - 30, maxZ: z + 30, minY: 0, maxY: h });
-        }
-        createTower(0, -750, 380);
-        createTower(-600, 0, 320);
-        createTower(600, 0, 350);
+        // Additional exterior factory warehouses & obstacles
+        createWarehouse(-250, -300, 150, 70, 200);
+        createWarehouse(250, -320, 160, 80, 180);
+        createWarehouse(0, -600, 300, 90, 150);
 
-        // 6. Extended Racing Track, Neon Gates & Rails
-        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff0054 }); // Bright glowing pink neon
+        // Racing Gates & Track
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff }); // Clean DJI Blue racing gates
         function createVelociGate(x, z, rotY) {
             const gateGroup = new THREE.Group();
             const gateW = 18, gateH = 14, thick = 0.9;
@@ -400,30 +351,12 @@
             obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.5, maxY: gateH + 0.5 });
         }
 
-        // Expanded Long Racing Track
-        createVelociGate(0, 0, 0);
-        createVelociGate(0, -120, 0);
-        createVelociGate(-120, -240, Math.PI / 4);
-        createVelociGate(-240, -360, Math.PI / 2);
-        createVelociGate(-120, -480, (3 * Math.PI) / 4);
-        createVelociGate(0, -600, 0);
-        createVelociGate(180, -600, Math.PI / 2);
-        createVelociGate(360, -480, Math.PI);
-
-        // Racing Rails
-        const railMat = new THREE.MeshBasicMaterial({ color: 0xffb703 });
-        function createRail(x1, z1, x2, z2) {
-            const len = Math.hypot(x2 - x1, z2 - z1);
-            const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, len, 8), railMat);
-            rail.rotation.x = Math.PI / 2;
-            rail.position.set((x1+x2)/2, 8, (z1+z2)/2);
-            rail.lookAt(x2, 8, z2);
-            scene.add(rail);
-        }
-        createRail(0, 0, 0, -120);
-        createRail(0, -120, -120, -240);
-        createRail(-120, -240, -240, -360);
-        createRail(-240, -360, -120, -480);
+        // Spawn right inside the factory, facing out towards the racing circuit
+        createVelociGate(0, 40, 0);
+        createVelociGate(0, -40, 0);
+        createVelociGate(-80, -140, Math.PI / 4);
+        createVelociGate(80, -140, -Math.PI / 4);
+        createVelociGate(0, -240, 0);
 
         // --- DJI AVATA 3D MODEL WITH SHADOW ---
         const droneGroup = new THREE.Group();
@@ -466,7 +399,7 @@
         shadowCanvas.width = 64; shadowCanvas.height = 64;
         const sCtx = shadowCanvas.getContext('2d');
         const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
         sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         sCtx.fillStyle = sGrad;
         sCtx.fillRect(0, 0, 64, 64);
@@ -477,9 +410,9 @@
         droneShadow.position.y = 0.03;
         scene.add(droneShadow);
 
-        // --- FLIGHT PHYSICS & STATE ---
+        // --- FLIGHT PHYSICS & STATE (SPAWN INSIDE FACTORY HANGAR AT Z = 15) ---
         const drone = {
-            position: new THREE.Vector3(0, 0.3, 45), 
+            position: new THREE.Vector3(0, 0.3, 15), 
             velocity: new THREE.Vector3(0, 0, 0),
             rotation: new THREE.Quaternion(),
             euler: new THREE.Euler(0, 0, 0, 'YXZ')
@@ -498,7 +431,6 @@
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
         let keys = { w: false, s: false, a: false, d: false };
 
-        // Mouse flight controls with instant self-centering when mouse stops moving
         let mousePitch = 0, mouseRoll = 0;
         let rawMouseX = 0, rawMouseY = 0;
         let mouseInputActive = false;
@@ -509,7 +441,7 @@
         let stickyThrottleValue = 0.0; 
 
         const MOUSE_SENSITIVITY = 0.0025; 
-        const THROTTLE_CHANGE_SPEED = 1.5; // Fast launch throttle response
+        const THROTTLE_CHANGE_SPEED = 1.5;
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
         let currentThrottle = 0;
@@ -533,7 +465,6 @@
             }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             
-            // Volume Shortcuts (+ and - keys)
             if (e.key === '+' || e.key === '=') { masterVolume = Math.min(1.0, masterVolume + 0.1); return; }
             if (e.key === '-' || e.key === '_') { masterVolume = Math.max(0.0, masterVolume - 0.1); return; }
 
@@ -547,19 +478,18 @@
             if (key in keys) keys[key] = false; 
         });
 
-        // Mouse Move Listener with instant centring timeout fix
         document.addEventListener('mousemove', (e) => {
             if (isMobile || document.pointerLockElement !== container) return;
             mousePitch = -e.movementY * MOUSE_SENSITIVITY;
             mouseRoll = e.movementX * MOUSE_SENSITIVITY;
-            rawMouseX = Math.max(-30, Math.min(30, e.movementX * 1.2));
-            rawMouseY = Math.max(-30, Math.min(30, -e.movementY * 1.2));
+            rawMouseX = Math.max(-35, Math.min(35, e.movementX * 1.2));
+            rawMouseY = Math.max(-35, Math.min(35, -e.movementY * 1.2));
             mouseInputActive = true;
 
             clearTimeout(mouseIdleTimer);
             mouseIdleTimer = setTimeout(() => {
                 mouseInputActive = false;
-            }, 50); // Instantly snap back when mouse stops moving
+            }, 40);
         });
 
         function setupTouchJoystick(padId, knobId, callback, isStickyY = false) {
@@ -633,7 +563,7 @@
         });
 
         function resetDrone() {
-            drone.position.set(0, 0.3, 45); 
+            drone.position.set(0, 0.3, 15); 
             drone.velocity.set(0, 0, 0); 
             drone.rotation.set(0, 0, 0, 1); 
             drone.euler.set(0, 0, 0);
@@ -745,10 +675,10 @@
                 }
             }
 
-            // Instantly spring mouse right stick back to absolute center when mouse is idle
+            // Ultra-fast smooth centering back for mouse right stick
             if (!mouseInputActive) {
-                rawMouseX += (0 - rawMouseX) * Math.min(1.0, 20.0 * dt);
-                rawMouseY += (0 - rawMouseY) * Math.min(1.0, 20.0 * dt);
+                rawMouseX += (0 - rawMouseX) * Math.min(1.0, 25.0 * dt);
+                rawMouseY += (0 - rawMouseY) * Math.min(1.0, 25.0 * dt);
             }
 
             if (tumbleRotationVelocity.lengthSq() > 0.001) {
@@ -773,11 +703,10 @@
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            // Update potato real shadow dot under drone
             droneShadow.position.set(drone.position.x, 0.03, drone.position.z);
             const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 30.0));
             droneShadow.scale.set(3.2 * heightFactor, 3.2 * heightFactor, 1);
-            droneShadow.material.opacity = Math.max(0.05, 0.65 * heightFactor);
+            droneShadow.material.opacity = Math.max(0.05, 0.6 * heightFactor);
 
             if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(p => p.rotation.y += 0.6); }
 
@@ -794,17 +723,18 @@
 
             mousePitch = 0; mouseRoll = 0;
 
+            // Ultra-smooth interpolation for stick overlay movement (matches DJI Virtual Flight UI physics)
             const stickLeft = document.getElementById('stick-left');
             const stickRight = document.getElementById('stick-right');
-            let leftY = isMobile ? touchLeftValY * 35 : -(stickyThrottleValue * 2 - 1) * 24;
-            let leftX = isMobile ? touchLeftValX * 35 : (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
-            let rightX = isMobile ? touchRightValX * 35 : rawMouseX;
-            let rightY = isMobile ? touchRightValY * 35 : rawMouseY;
+            let leftY = isMobile ? touchLeftValY * 32 : -(stickyThrottleValue * 2 - 1) * 22;
+            let leftX = isMobile ? touchLeftValX * 32 : (keys.d ? 1 : (keys.a ? -1 : 0)) * 22;
+            let rightX = isMobile ? touchRightValX * 32 : rawMouseX;
+            let rightY = isMobile ? touchRightValY * 32 : rawMouseY;
 
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
-            composer.render();
+            renderer.render(scene, camera);
         }
 
         animate();
