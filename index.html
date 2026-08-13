@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>FPV PC Simulator - DJI Avata Style</title>
+    <title> </title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
@@ -200,7 +200,7 @@
                 <h1>DJI Avata Simulator</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Faster response)<br>
+                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Stays in position / No spring-back)<br>
                     <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
                     <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
                     <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
@@ -225,9 +225,9 @@
             `;
         }
 
-        // --- WEB AUDIO API DRONE SOUND ENGINE ---
+        // --- WEB AUDIO API DRONE SOUND ENGINE (ZERO LAG / NO EXTERNAL ASSETS) ---
         let audioCtx = null;
-        let motorOsc1 = null, motorOsc2 = null, motorGain = null;
+        let motorOsc1 = null, motorOsc2 = null, motorGain = null, noiseNode = null, noiseGain = null;
         let isAudioInitialized = false;
 
         function initAudio() {
@@ -235,6 +235,7 @@
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
+                // Tone generator for propeller whine
                 motorOsc1 = audioCtx.createOscillator();
                 motorOsc1.type = 'sawtooth';
                 motorOsc1.frequency.setValueAtTime(60, audioCtx.currentTime);
@@ -354,12 +355,9 @@
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
         
-        // --- LAG-FREE LIGHTWEIGHT RENDERER WITH SHADOW SUPPORT ---
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
         function handleResize() {
@@ -380,20 +378,8 @@
         setTimeout(handleResize, 100);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-        
-        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.9);
-        skyLight.position.set(150, 400, 150);
-        skyLight.castShadow = true;
-        skyLight.shadow.mapSize.width = 1024;
-        skyLight.shadow.mapSize.height = 1024;
-        skyLight.shadow.camera.near = 0.5;
-        skyLight.shadow.camera.far = 1000;
-        const d = 250;
-        skyLight.shadow.camera.left = -d;
-        skyLight.shadow.camera.right = d;
-        skyLight.shadow.camera.top = d;
-        skyLight.shadow.camera.bottom = -d;
-        skyLight.shadow.bias = -0.0005;
+        const skyLight = new THREE.DirectionalLight(0xfffae0, 0.6);
+        skyLight.position.set(100, 300, 50);
         scene.add(skyLight);
 
         const floorCanvas = document.createElement('canvas');
@@ -410,10 +396,26 @@
 
         const floorGeo = new THREE.PlaneGeometry(5000, 5000);
         floorGeo.rotateX(-Math.PI / 2);
-        const floorMat = new THREE.MeshLambertMaterial({ map: floorTex });
-        const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-        floorMesh.receiveShadow = true;
-        scene.add(floorMesh);
+        const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
+        scene.add(new THREE.Mesh(floorGeo, floorMat));
+
+        // --- ZERO-LAG PROCEDURAL SHADOW DOT ---
+        const shadowCanvas = document.createElement('canvas');
+        shadowCanvas.width = 64; shadowCanvas.height = 64;
+        const sCtx = shadowCanvas.getContext('2d');
+        const sGrad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.55)');
+        sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        sCtx.fillStyle = sGrad;
+        sCtx.fillRect(0, 0, 64, 64);
+        const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+        
+        const droneShadowMat = new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false });
+        const droneShadowGeo = new THREE.PlaneGeometry(3.2, 3.2);
+        droneShadowGeo.rotateX(-Math.PI / 2);
+        const droneShadow = new THREE.Mesh(droneShadowGeo, droneShadowMat);
+        droneShadow.position.y = 0.02;
+        scene.add(droneShadow);
 
         const cloudGroup = new THREE.Group();
         const cloudCanvas = document.createElement('canvas');
@@ -445,23 +447,21 @@
         blockTex.wrapS = THREE.RepeatWrapping; blockTex.wrapT = THREE.RepeatWrapping;
         blockTex.repeat.set(2, 8);
 
-        const wallMat = new THREE.MeshLambertMaterial({ map: blockTex });
-        const gateMat = new THREE.MeshLambertMaterial({ color: 0xff1144 });
+        const wallMat = new THREE.MeshBasicMaterial({ map: blockTex });
+        const gateMat = new THREE.MeshBasicMaterial({ color: 0xff1144 });
 
         function createTrackTower(x, z, width, height, depth) {
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), wallMat);
             mesh.position.set(x, height / 2, z);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
             scene.add(mesh);
             obstacles.push({ minX: x - width/2, maxX: x + width/2, minZ: z - depth/2, maxZ: z + depth/2, minY: 0, maxY: height });
         }
 
         function createVelociGate(x, z, rotY) {
             const gateGroup = new THREE.Group(); const gateW = 15, gateH = 11, thick = 0.7;
-            const top = new THREE.Mesh(new THREE.BoxGeometry(gateW, thick, thick), gateMat); top.position.y = gateH; top.castShadow = true; top.receiveShadow = true;
-            const left = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); left.position.set(-gateW/2, gateH/2, 0); left.castShadow = true; left.receiveShadow = true;
-            const right = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); right.position.set(gateW/2, gateH/2, 0); right.castShadow = true; right.receiveShadow = true;
+            const top = new THREE.Mesh(new THREE.BoxGeometry(gateW, thick, thick), gateMat); top.position.y = gateH;
+            const left = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); left.position.set(-gateW/2, gateH/2, 0);
+            const right = new THREE.Mesh(new THREE.BoxGeometry(thick, gateH, thick), gateMat); right.position.set(gateW/2, gateH/2, 0);
             gateGroup.add(top, left, right); gateGroup.position.set(x, 0, z); gateGroup.rotation.y = rotY; scene.add(gateGroup);
 
             const isRotated = Math.abs(rotY) > 0.1; const sizeX = isRotated ? thick : gateW; const sizeZ = isRotated ? gateW : thick;
@@ -488,18 +488,17 @@
         // --- DJI AVATA 1 3D MODEL CONSTRUCTION ---
         const droneGroup = new THREE.Group();
         
-        const bodyMat = new THREE.MeshLambertMaterial({ color: 0x1c1e22 });
-        const accentMat = new THREE.MeshLambertMaterial({ color: 0x2e323b });
-        const orangeAccent = new THREE.MeshLambertMaterial({ color: 0xff6600 });
-        const glassLensMat = new THREE.MeshLambertMaterial({ color: 0x112244 });
+        const bodyMat = new THREE.MeshBasicMaterial({ color: 0x1c1e22 });
+        const accentMat = new THREE.MeshBasicMaterial({ color: 0x2e323b });
+        const orangeAccent = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+        const glassLensMat = new THREE.MeshBasicMaterial({ color: 0x112244 });
 
         const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
         fuselage.position.set(0, 0, 0);
-        fuselage.castShadow = true;
         droneGroup.add(fuselage);
 
-        const ductMaterial = new THREE.MeshLambertMaterial({ color: 0x22252b, side: THREE.DoubleSide });
-        const propMat = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+        const ductMaterial = new THREE.MeshBasicMaterial({ color: 0x22252b, side: THREE.DoubleSide });
+        const propMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
 
         const propMeshes = [];
         const ductPositions = [
@@ -513,14 +512,12 @@
             const ductGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.4, 24, 1, true);
             const duct = new THREE.Mesh(ductGeo, ductMaterial);
             duct.position.set(pos.x, 0, pos.z);
-            duct.castShadow = true;
             droneGroup.add(duct);
 
             const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 8, 24);
             const ring = new THREE.Mesh(ringGeo, orangeAccent);
             ring.rotation.x = Math.PI / 2;
             ring.position.set(pos.x, 0, pos.z);
-            ring.castShadow = true;
             droneGroup.add(ring);
 
             const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.18), propMat);
@@ -531,7 +528,6 @@
 
         const gimbalHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), accentMat);
         gimbalHousing.position.set(0, -0.05, 0.95);
-        gimbalHousing.castShadow = true;
         droneGroup.add(gimbalHousing);
 
         const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16), glassLensMat);
@@ -571,7 +567,7 @@
         let stickyThrottleValue = 0.0; 
 
         const MOUSE_SENSITIVITY = 0.0025; 
-        const THROTTLE_CHANGE_SPEED = 1.35; // Increased responsiveness for W/S keys
+        const THROTTLE_CHANGE_SPEED = 0.8; 
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
         
@@ -839,6 +835,7 @@
                 }
             }
 
+            // Update real-time Web Audio motor sound based on throttle and arm state
             updateAudioEngine(currentThrottle, isArmed);
 
             if (isMobile) {
@@ -924,10 +921,13 @@
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            // Keep the main directional shadow light following the drone for crisp high-performance shadows
-            skyLight.position.set(drone.position.x + 150, 400, drone.position.z + 150);
-            skyLight.target.position.copy(drone.position);
-            skyLight.target.updateMatrixWorld();
+            // Update procedural shadow position & scale based on height
+            droneShadow.position.x = drone.position.x;
+            droneShadow.position.z = drone.position.z;
+            const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 25.0));
+            const shadowScale = (3.2 * heightFactor);
+            droneShadow.scale.set(shadowScale, shadowScale, 1);
+            droneShadow.material.opacity = Math.max(0.05, 0.55 * heightFactor);
 
             if (isArmed && currentThrottle > 0.05) { propMeshes.forEach(prop => { prop.rotation.y += 0.55; }); }
 
@@ -971,7 +971,7 @@
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
 
-            renderer.render(scene, camera);
+            renderer.format = renderer.render(scene, camera);
         }
 
         animate();
