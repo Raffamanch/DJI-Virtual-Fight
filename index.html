@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title> </title>
+    <title></title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
@@ -225,59 +225,6 @@
             `;
         }
 
-        // --- WEB AUDIO API DRONE SOUND ENGINE (ZERO LAG / NO EXTERNAL ASSETS) ---
-        let audioCtx = null;
-        let motorOsc1 = null, motorOsc2 = null, motorGain = null, noiseNode = null, noiseGain = null;
-        let isAudioInitialized = false;
-
-        function initAudio() {
-            if (isAudioInitialized) return;
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Tone generator for propeller whine
-                motorOsc1 = audioCtx.createOscillator();
-                motorOsc1.type = 'sawtooth';
-                motorOsc1.frequency.setValueAtTime(60, audioCtx.currentTime);
-
-                motorOsc2 = audioCtx.createOscillator();
-                motorOsc2.type = 'triangle';
-                motorOsc2.frequency.setValueAtTime(120, audioCtx.currentTime);
-
-                motorGain = audioCtx.createGain();
-                motorGain.gain.setValueAtTime(0, audioCtx.currentTime);
-
-                motorOsc1.connect(motorGain);
-                motorOsc2.connect(motorGain);
-                motorGain.connect(audioCtx.destination);
-
-                motorOsc1.start();
-                motorOsc2.start();
-
-                isAudioInitialized = true;
-            } catch (e) {
-                console.warn("Web Audio API not supported or blocked");
-            }
-        }
-
-        function updateAudioEngine(throttle, armed) {
-            if (!isAudioInitialized || !audioCtx) return;
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            if (!armed || throttle <= 0.01) {
-                motorGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
-            } else {
-                let targetVol = Math.min(0.18, 0.02 + throttle * 0.16);
-                motorGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.05);
-
-                let baseFreq = 80 + throttle * 420;
-                motorOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
-                motorOsc2.frequency.setTargetAtTime(baseFreq * 1.5, audioCtx.currentTime, 0.05);
-            }
-        }
-
         const osdCanvas = document.getElementById('osd-overlay-canvas');
         const oCtx = osdCanvas.getContext('2d', { willReadFrequently: true });
         const osdImg = new Image();
@@ -355,6 +302,7 @@
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
         
+        // --- BALANCED WEBGL CONFIG: LIGHT ANTIALIASING WITHOUT BLUR OR LAG ---
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
@@ -613,7 +561,6 @@
         });
 
         function startGameSession() {
-            initAudio();
             handleResize();
             inst.style.display = 'none';
             if (!isMobile) {
@@ -834,9 +781,6 @@
                     currentThrottle = stickyThrottleValue;
                 }
             }
-
-            // Update real-time Web Audio motor sound based on throttle and arm state
-            updateAudioEngine(currentThrottle, isArmed);
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
