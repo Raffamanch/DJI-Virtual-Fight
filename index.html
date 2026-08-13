@@ -153,7 +153,7 @@
 
     <div id="canvas-container">
         <div id="top-menu-bar">
-            <div id="menu-dot-esc">NO &bull; 6/5</div>
+            <div id="menu-dot-esc">AVATA 1 &bull; RACE</div>
             <div id="mobile-mode-btn">MODE: NORMAL</div>
         </div>
 
@@ -196,13 +196,13 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Avata Simulator</h1>
+                <h1>DJI Avata 1 Simulator</h1>
                 <p id="instruction-text">
                     <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Faster response)<br>
+                    <b>[ W / S ]</b> : THROTTLE UP / DOWN<br>
                     <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
-                    <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
-                    <span style="color: #00ffcc;">✓ Realistic Practice Gaps & Proper Chase View</span>
+                    <b>[ Move Mouse ]</b> : PITCH & ROLL<br><br>
+                    <span style="color: #00ffcc;">✓ Avata 1 Compact Body + Racing Track Rails + Ocean Reset Zone</span>
                 </p>
             </div>
         </div>
@@ -220,13 +220,13 @@
                 <b>[ Left Joystick ]</b> : Throttle Up/Down<br>
                 <b>[ Right Joystick ]</b> : Pitch & Roll<br>
                 <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Realistic Practice Gaps & Proper Chase View</span>
+                <span style="color: #00ffcc;">✓ Avata 1 Body + Racing Track Rails + Ocean Reset Zone</span>
             `;
         }
 
-        // --- AUDIO ENGINE (SUBTLE, QUIET HIGH-PITCH WHINE) ---
+        // --- REALISTIC SOFT / QUIET DRONE SOUND ENGINE ---
         let audioCtx = null;
-        let motorOsc1 = null, motorOsc2 = null, noiseNode = null, motorGain = null;
+        let motorOsc1 = null, motorOsc2 = null, noiseNode = null, motorGain = null, lowPassFilter = null;
         let isAudioInitialized = false;
 
         function initAudio() {
@@ -235,13 +235,14 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
                 motorOsc1 = audioCtx.createOscillator();
-                motorOsc1.type = 'sine';
-                motorOsc1.frequency.setValueAtTime(300, audioCtx.currentTime);
+                motorOsc1.type = 'triangle';
+                motorOsc1.frequency.setValueAtTime(120, audioCtx.currentTime);
 
                 motorOsc2 = audioCtx.createOscillator();
-                motorOsc2.type = 'triangle';
-                motorOsc2.frequency.setValueAtTime(600, audioCtx.currentTime);
+                motorOsc2.type = 'sine';
+                motorOsc2.frequency.setValueAtTime(240, audioCtx.currentTime);
 
+                // Smoother, filtered white noise for realistic ducted fan aerodynamic hum
                 const bufferSize = audioCtx.sampleRate * 2;
                 const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const output = noiseBuffer.getChannelData(0);
@@ -252,18 +253,18 @@
                 noiseNode.buffer = noiseBuffer;
                 noiseNode.loop = true;
 
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(800, audioCtx.currentTime);
-                filter.Q.setValueAtTime(1.5, audioCtx.currentTime);
+                lowPassFilter = audioCtx.createBiquadFilter();
+                lowPassFilter.type = 'lowpass';
+                lowPassFilter.frequency.setValueAtTime(450, audioCtx.currentTime);
+                lowPassFilter.Q.setValueAtTime(2.0, audioCtx.currentTime);
 
                 motorGain = audioCtx.createGain();
                 motorGain.gain.setValueAtTime(0, audioCtx.currentTime);
 
                 motorOsc1.connect(motorGain);
                 motorOsc2.connect(motorGain);
-                noiseNode.connect(filter);
-                filter.connect(motorGain);
+                noiseNode.connect(lowPassFilter);
+                lowPassFilter.connect(motorGain);
                 motorGain.connect(audioCtx.destination);
 
                 motorOsc1.start();
@@ -285,12 +286,14 @@
             if (!armed || throttle <= 0.01) {
                 motorGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.08);
             } else {
-                let targetVol = Math.min(0.035, 0.005 + throttle * 0.03);
+                // Extremely gentle volume ceiling (max gain 0.008) so it's super quiet and smooth
+                let targetVol = Math.min(0.008, 0.001 + throttle * 0.007);
                 motorGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.05);
 
-                let baseFreq = 400 + throttle * 1400;
+                let baseFreq = 180 + throttle * 450;
                 motorOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
-                motorOsc2.frequency.setTargetAtTime(baseFreq * 2.02, audioCtx.currentTime, 0.05);
+                motorOsc2.frequency.setTargetAtTime(baseFreq * 2.0, audioCtx.currentTime, 0.05);
+                lowPassFilter.frequency.setTargetAtTime(300 + throttle * 700, audioCtx.currentTime, 0.05);
             }
         }
 
@@ -367,7 +370,7 @@
         
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xa4caff);
-        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
+        scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0015);
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
         
@@ -418,6 +421,7 @@
         sunMesh.position.set(800, 900, 800);
         scene.add(sunMesh);
 
+        // --- GROUND & OCEAN ---
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 256; floorCanvas.height = 256;
         const ctxFloor = floorCanvas.getContext('2d');
@@ -430,12 +434,21 @@
         floorTex.wrapS = THREE.RepeatWrapping; floorTex.wrapT = THREE.RepeatWrapping;
         floorTex.repeat.set(180, 180);
 
-        const floorGeo = new THREE.PlaneGeometry(5000, 5000);
+        const floorGeo = new THREE.PlaneGeometry(3000, 3000);
         floorGeo.rotateX(-Math.PI / 2);
         const floorMat = new THREE.MeshLambertMaterial({ map: floorTex });
         const floorMesh = new THREE.Mesh(floorGeo, floorMat);
         floorMesh.receiveShadow = true;
         scene.add(floorMesh);
+
+        // Ocean on the left side (x < -600)
+        const oceanGeo = new THREE.PlaneGeometry(2500, 4000);
+        oceanGeo.rotateX(-Math.PI / 2);
+        const oceanMat = new THREE.MeshLambertMaterial({ color: 0x1e88e5, transparent: true, opacity: 0.85 });
+        const oceanMesh = new THREE.Mesh(oceanGeo, oceanMat);
+        oceanMesh.position.set(-1550, -0.2, 0);
+        oceanMesh.receiveShadow = true;
+        scene.add(oceanMesh);
 
         const cloudGroup = new THREE.Group();
         const cloudCanvas = document.createElement('canvas');
@@ -494,7 +507,6 @@
             obstacles.push({ minX: x - sizeX/2, maxX: x + sizeX/2, minZ: z - sizeZ/2, maxZ: z + sizeZ/2, minY: gateH - 0.4, maxY: gateH + 0.4 });
         }
 
-        // --- PRACTICE GAPS (Additional precise obstacle gaps for pilot training) ---
         function createPracticeGap(x, z, rotY) {
             const gapGroup = new THREE.Group();
             const width = 10, height = 7, thickness = 0.6;
@@ -523,6 +535,37 @@
             obstacles.push({ minX: x - sX/2, maxX: x + sX/2, minZ: z - sZ/2, maxZ: z + sZ/2, minY: 0, maxY: height + 0.5 });
         }
 
+        // --- TRACK RAILS FOR RACING / PRACTICE ---
+        function createRacingTrackRail(startX, startZ, endX, endZ) {
+            const dx = endX - startX;
+            const dz = endZ - startZ;
+            const length = Math.sqrt(dx * dx + dz * dz);
+            const angle = Math.atan2(dx, dz);
+
+            const railMat = new THREE.MeshLambertMaterial({ color: 0xffcc00 });
+            
+            // Left barrier wall
+            const rail1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, length), railMat);
+            const midX1 = (startX + endX) / 2 - Math.cos(angle) * 3.5;
+            const midZ1 = (startZ + endZ) / 2 + Math.sin(angle) * 3.5;
+            rail1.position.set(midX1, 0.9, midZ1);
+            rail1.rotation.y = angle;
+            rail1.castShadow = true; rail1.receiveShadow = true;
+            scene.add(rail1);
+
+            // Right barrier wall
+            const rail2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, length), railMat);
+            const midX2 = (startX + endX) / 2 + Math.cos(angle) * 3.5;
+            const midZ2 = (startZ + endZ) / 2 - Math.sin(angle) * 3.5;
+            rail2.position.set(midX2, 0.9, midZ2);
+            rail2.rotation.y = angle;
+            rail2.castShadow = true; rail2.receiveShadow = true;
+            scene.add(rail2);
+
+            obstacles.push({ minX: midX1 - 1.0, maxX: midX1 + 1.0, minZ: Math.min(startX, endZ) - 5, maxZ: Math.max(startX, endZ) + 5, minY: 0, maxY: 2.0 });
+            obstacles.push({ minX: midX2 - 1.0, maxX: midX2 + 1.0, minZ: Math.min(startX, endZ) - 5, maxZ: Math.max(startX, endZ) + 5, minY: 0, maxY: 2.0 });
+        }
+
         createTrackTower(-60, -100, 30, 70, 30);
         createTrackTower(70, -120, 35, 90, 35);
         createTrackTower(-90, 20, 25, 55, 25);
@@ -536,13 +579,17 @@
         createVelociGate(50, -170, Math.PI / 2);
         createVelociGate(0, -240, 0);
 
-        // Add practice gaps near start spawn area and along the track
         createPracticeGap(0, 25, 0);
         createPracticeGap(-20, -5, Math.PI / 6);
         createPracticeGap(20, -5, -Math.PI / 6);
         createPracticeGap(0, -85, 0);
 
-        // --- DJI AVATA 3D MODEL WITH FULL SHADOWS ---
+        // Add racing track guide rails around the main spawn and course
+        createRacingTrackRail(0, 40, 0, -40);
+        createRacingTrackRail(-35, -40, -35, -120);
+        createRacingTrackRail(35, -40, 35, -120);
+
+        // --- DJI AVATA 1 3D MODEL (Shorter, more compact stubby body & integrated camera mount) ---
         const droneGroup = new THREE.Group();
         
         const bodyMat = new THREE.MeshLambertMaterial({ color: 0x1c1e22 });
@@ -550,7 +597,8 @@
         const orangeAccent = new THREE.MeshLambertMaterial({ color: 0xff6600 });
         const glassLensMat = new THREE.MeshLambertMaterial({ color: 0x112244 });
 
-        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.35, 1.6), bodyMat);
+        // Avata 1 is noticeably shorter and stubbier than Avata 2
+        const fuselage = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.32, 1.25), bodyMat);
         fuselage.position.set(0, 0, 0);
         fuselage.castShadow = true;
         fuselage.receiveShadow = true;
@@ -561,21 +609,21 @@
 
         const propMeshes = [];
         const ductPositions = [
-            { x: 0.95, z: 0.85 },   
-            { x: -0.95, z: 0.85 },  
-            { x: 0.95, z: -0.85 },  
-            { x: -0.95, z: -0.85 }   
+            { x: 0.85, z: 0.65 },   
+            { x: -0.85, z: 0.65 },  
+            { x: 0.85, z: -0.65 },  
+            { x: -0.85, z: -0.65 }   
         ];
 
         ductPositions.forEach(pos => {
-            const ductGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.4, 24, 1, true);
+            const ductGeo = new THREE.CylinderGeometry(0.78, 0.78, 0.35, 24, 1, true);
             const duct = new THREE.Mesh(ductGeo, ductMaterial);
             duct.position.set(pos.x, 0, pos.z);
             duct.castShadow = true;
             duct.receiveShadow = true;
             droneGroup.add(duct);
 
-            const ringGeo = new THREE.TorusGeometry(0.86, 0.04, 8, 24);
+            const ringGeo = new THREE.TorusGeometry(0.79, 0.035, 8, 24);
             const ring = new THREE.Mesh(ringGeo, orangeAccent);
             ring.rotation.x = Math.PI / 2;
             ring.position.set(pos.x, 0, pos.z);
@@ -583,7 +631,7 @@
             ring.receiveShadow = true;
             droneGroup.add(ring);
 
-            const prop = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.03, 0.18), propMat);
+            const prop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 0.16), propMat);
             prop.position.set(pos.x, 0, pos.z);
             prop.castShadow = true;
             prop.receiveShadow = true;
@@ -591,15 +639,21 @@
             propMeshes.push(prop);
         });
 
-        const gimbalHousing = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.35, 0.45), accentMat);
-        gimbalHousing.position.set(0, -0.05, 0.95);
+        // Distinct Avata 1 front protective camera roll cage & wide angle lens
+        const cageBar1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.3), orangeAccent);
+        cageBar1.position.set(0, 0.12, 0.75);
+        cageBar1.castShadow = true; cageBar1.receiveShadow = true;
+        droneGroup.add(cageBar1);
+
+        const gimbalHousing = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.4), accentMat);
+        gimbalHousing.position.set(0, -0.04, 0.75);
         gimbalHousing.castShadow = true;
         gimbalHousing.receiveShadow = true;
         droneGroup.add(gimbalHousing);
 
-        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16), glassLensMat);
+        const cameraLens = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.1, 16), glassLensMat);
         cameraLens.rotation.x = Math.PI / 2;
-        cameraLens.position.set(0, -0.05, 1.2);
+        cameraLens.position.set(0, -0.04, 0.98);
         cameraLens.castShadow = true;
         cameraLens.receiveShadow = true;
         droneGroup.add(cameraLens);
@@ -849,8 +903,14 @@
 
         function handleCollisions() {
             const px = drone.position.x; const py = drone.position.y; const pz = drone.position.z; 
-            const buffer = 0.8; 
+            
+            // Check if drone crashed into the ocean area (x < -600) -> Reset spawn
+            if (px < -600) {
+                resetDrone();
+                return;
+            }
 
+            const buffer = 0.8; 
             for(let i = 0; i < obstacles.length; i++) {
                 const obs = obstacles[i];
                 if(px + buffer > obs.minX && px - buffer < obs.maxX && pz + buffer > obs.minZ && pz - buffer < obs.maxZ) {
@@ -969,6 +1029,7 @@
 
             if (drone.position.y < 0.3) {
                 drone.position.y = 0.3; 
+                // Ground crash: do NOT reset spawn position, just let it bounce/slide on ground normally
                 if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
                     tumbleRotationVelocity.set((Math.random()-0.5)*45, (Math.random()-0.5)*25, (Math.random()-0.5)*45);
                     drone.velocity.y = Math.abs(drone.velocity.y) * 0.38 + 1.2;
@@ -1011,10 +1072,9 @@
                 // --- TPV Chase Camera properly positioned BEHIND the drone ---
                 const backOffset = new THREE.Vector3(0, 2.2, -6.5).applyQuaternion(drone.rotation);
                 const targetCamPos = new THREE.Vector3().addVectors(drone.position, backOffset);
-                targetCamPos.y = Math.max(0.8, targetCamPos.y); // Prevent camera sinking under the floor
+                targetCamPos.y = Math.max(0.8, targetCamPos.y); 
                 camera.position.lerp(targetCamPos, 0.25);
                 
-                // Look slightly ahead of the drone for better steering perspective
                 const lookAheadTarget = drone.position.clone().add(new THREE.Vector3(0, 0.5, 3.0).applyQuaternion(drone.rotation));
                 camera.lookAt(lookAheadTarget);
             }
