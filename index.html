@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title></title>
+    <title> </title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
@@ -197,13 +197,9 @@
 
         <div id="instructions">
             <div id="menu-content">
-                <h1>DJI Avata Simulator</h1>
+                <h1>DJI VIRTUAL FIGHT</h1>
                 <p id="instruction-text">
-                    <b>[ CLICK TO START / PLAY ]</b><br><br>
-                    <b>[ W / S ]</b> : THROTTLE UP / DOWN (Stays in position / No spring-back)<br>
-                    <b>[ A / D ]</b> : YAW | <b>[ M ]</b> : ARM/DISARM MOTOR<br>
-                    <b>[ Move Mouse ]</b> : PITCH & ROLL (Right Stick spring-back mode)<br><br>
-                    <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
+                    <b>Ready to Go</b><br><br>                   
                 </p>
             </div>
         </div>
@@ -217,11 +213,7 @@
             document.getElementById('mobile-mode-btn').style.display = 'block';
             document.getElementById('pause-icon').innerText = 'II';
             document.getElementById('instruction-text').innerHTML = `
-                <b>[ TAP TO START SIMULATOR ]</b><br><br>
-                <b>[ Left Joystick ]</b> : Throttle Up/Down (Starts at bottom / Stays where left)<br>
-                <b>[ Right Joystick ]</b> : Pitch & Roll (Returns to center automatically)<br>
-                <b>[ Bottom Center ]</b> : Motor & Fullscreen Icons<br><br>
-                <span style="color: #00ffcc;">✓ Left Stick Throttle Starts at Bottom (0 Throttle)</span>
+                <b>Ready to Go</b><br><br>
             `;
         }
 
