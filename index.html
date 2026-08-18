@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title> </title>
+    <!-- GitHub Favicon -->
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/Raffamanch/DJI-Virtual-Fight/main/PNG.ico">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #a4caff; font-family: monospace; position: fixed; }
@@ -294,7 +296,6 @@
 
         const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
         
-        // --- BALANCED WEBGL CONFIG: LIGHT ANTIALIASING WITHOUT BLUR OR LAG ---
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
@@ -339,7 +340,6 @@
         const floorMat = new THREE.MeshBasicMaterial({ map: floorTex });
         scene.add(new THREE.Mesh(floorGeo, floorMat));
 
-        // --- ZERO-LAG PROCEDURAL SHADOW DOT ---
         const shadowCanvas = document.createElement('canvas');
         shadowCanvas.width = 64; shadowCanvas.height = 64;
         const sCtx = shadowCanvas.getContext('2d');
@@ -425,7 +425,6 @@
         createVelociGate(50, -170, Math.PI / 2);
         createVelociGate(0, -240, 0);
 
-        // --- DJI AVATA 1 3D MODEL CONSTRUCTION ---
         const droneGroup = new THREE.Group();
         
         const bodyMat = new THREE.MeshBasicMaterial({ color: 0x1c1e22 });
@@ -857,7 +856,6 @@
             droneGroup.position.copy(drone.position);
             droneGroup.quaternion.copy(drone.rotation);
 
-            // Update procedural shadow position & scale based on height
             droneShadow.position.x = drone.position.x;
             droneShadow.position.z = drone.position.z;
             const heightFactor = Math.max(0.2, 1.0 - (drone.position.y / 25.0));
