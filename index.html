@@ -774,20 +774,16 @@
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
+                targetPitch = -touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
+                targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
 
+                drone.euler.y -= inputYaw;
                 if (modeCfg.hasAutoLevel) {
-                    targetPitch = -touchRightValY * modeCfg.maxAngle;
-                    targetRoll = touchRightValX * modeCfg.maxAngle;
-                    drone.euler.y -= inputYaw;
                     drone.euler.x = targetPitch;
                     drone.euler.z = targetRoll;
                     drone.rotation.setFromEuler(drone.euler);
                 } else {
-                    // MANUAL/ACRO MOBILE STICK LOGIC FIXED: Matches computer rate logic cleanly (-touchRightValY / touchRightValX)
-                    const pitchRate = -touchRightValY * 30.0;
-                    const rollRate = touchRightValX * 30.0;
-                    drone.euler.y -= inputYaw;
-                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchRate * dt, -inputYaw, rollRate * dt, 'YXZ'));
+                    const deltaRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(targetPitch * dt, -inputYaw, targetRoll * dt, 'YXZ'));
                     drone.rotation.multiply(deltaRotation).normalize();
                 }
             } else {
@@ -837,6 +833,7 @@
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
+            // FIXED LANDING: Snaps cleanly to ground and zeroes vertical velocity/tumble to prevent double jumping/bouncing
             if (drone.position.y <= 0.3) {
                 drone.position.y = 0.3; 
                 drone.velocity.y = 0;
@@ -882,6 +879,7 @@
                 camera.lookAt(drone.position);
             }
 
+            // FIXED CAMERA CRASH: Enforce a minimum camera height floor offset to prevent it from clipping through the terrain
             if (camera.position.y < 0.5) {
                 camera.position.y = 0.5;
             }
