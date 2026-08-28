@@ -140,14 +140,14 @@
         #menu-dot-esc { color: #ffffff; font-size: 14px; background: rgba(20, 25, 35, 0.7); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
         
         #mobile-mode-btn {
-            color: rgb(255, 235, 59), 255, 255), 235, 59)23% 0%); font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            color: rgb(255, 235, 59); font-size: 14px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             display: none; font-weight: bold;
         }
 
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
-        p { linght: 1.6; font-size: 14px; color: #eee; }
+        p { font-size: 14px; color: #eee; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -293,7 +293,8 @@
         scene.background = new THREE.Color(0xa4caff);
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        const camera = new THREE.PerspectiveCamera(125, window.innerWidth / window.innerHeight, 0.1, 2000);
+        // Updated FOV to 120 degrees[cite: 1]
+        const camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 2000);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -509,7 +510,8 @@
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
         
-        const CAMERA_UPTILT = 0 * (Math.PI / 180);
+        // Updated Camera Tilt to 30 degrees[cite: 1]
+        const CAMERA_UPTILT = 30 * (Math.PI / 180);
         let currentThrottle = 0;
 
         const motorBtn = document.getElementById('btn-motor-toggle');
