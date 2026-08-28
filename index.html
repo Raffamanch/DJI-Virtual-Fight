@@ -293,7 +293,6 @@
         scene.background = new THREE.Color(0xa4caff);
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        // Updated FOV to 120 degrees[cite: 1]
         const camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 2000);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -510,7 +509,6 @@
         const YAW_RATE = 3.5;
         const GRAVITY = 9.81;
         
-        // Updated Camera Tilt to 30 degrees[cite: 1]
         const CAMERA_UPTILT = 30 * (Math.PI / 180);
         let currentThrottle = 0;
 
@@ -835,20 +833,17 @@
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
-            if (drone.position.y < 0.3) {
+            // FIXED LANDING: Snaps cleanly to ground and zeroes vertical velocity/tumble to prevent double jumping/bouncing
+            if (drone.position.y <= 0.3) {
                 drone.position.y = 0.3; 
-                if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 3.0) {
-                    tumbleRotationVelocity.set((Math.random()-0.5)*45, (Math.random()-0.5)*25, (Math.random()-0.5)*45);
-                    drone.velocity.y = Math.abs(drone.velocity.y) * 0.38 + 1.2;
-                } else if (!isSpawnedSafe && Math.abs(drone.velocity.y) > 0.5) {
-                    drone.velocity.y = 1.8;
-                    tumbleRotationVelocity.set((Math.random()-0.5)*6, (Math.random()-0.5)*6, (Math.random()-0.5)*6);
-                } else {
-                    drone.velocity.y = 0;
-                }
-                drone.velocity.x *= 0.65; drone.velocity.z *= 0.65;
-                if(modeCfg.hasAutoLevel && tumbleRotationVelocity.lengthSq() < 0.2) { 
-                    drone.euler.x = 0; drone.euler.z = 0; drone.rotation.setFromEuler(drone.euler); 
+                drone.velocity.y = 0;
+                drone.velocity.x *= 0.5; 
+                drone.velocity.z *= 0.5;
+                tumbleRotationVelocity.set(0, 0, 0);
+                if (modeCfg.hasAutoLevel) {
+                    drone.euler.x = 0; 
+                    drone.euler.z = 0; 
+                    drone.rotation.setFromEuler(drone.euler); 
                 }
             }
 
@@ -882,6 +877,11 @@
                 const backOffset = new THREE.Vector3(0, 2.5, 7.5).applyQuaternion(drone.rotation);
                 camera.position.lerp(new THREE.Vector3().subVectors(drone.position, backOffset), 0.2);
                 camera.lookAt(drone.position);
+            }
+
+            // FIXED CAMERA CRASH: Enforce a minimum camera height floor offset to prevent it from clipping through the terrain
+            if (camera.position.y < 0.5) {
+                camera.position.y = 0.5;
             }
 
             mousePitch = 0; mouseRoll = 0;
