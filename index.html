@@ -67,24 +67,31 @@
             pointer-events: none;
         }
         .stick-box {
-            width: 82px;
-            height: 82px;
-            background: rgba(40, 45, 55, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.28);
-            border-radius: 9px;
+            width: 90px;
+            height: 90px;
+            background: rgba(18, 20, 25, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
             position: relative;
-            box-shadow: 0 5px 12px rgba(0,0,0,0.33);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
         }
         .stick-cross-h {
-            position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255, 255, 255, 0.3);
+            position: absolute; top: 50%; left: 0; width: 100%; height: 1.5px; background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-50%);
         }
         .stick-cross-v {
-            position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.3);
+            position: absolute; top: 0; left: 50%; width: 1.5px; height: 100%; background: rgba(255, 255, 255, 0.25);
+            transform: translateX(-50%);
         }
         .stick-ball {
             position: absolute; width: 16px; height: 16px; background: #ffffff; border-radius: 50%;
             top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: transform 0.05s linear;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.6); z-index: 3;
+        }
+        .stick-trail {
+            position: absolute; width: 14px; height: 14px; background: rgba(135, 206, 250, 0.65); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 2;
         }
 
         #touch-controls {
@@ -175,14 +182,24 @@
         </div>
 
         <div id="rc-sticks-container">
-            <div class="stick-box">
+            <div class="stick-box" id="box-left">
                 <div class="stick-cross-h"></div>
                 <div class="stick-cross-v"></div>
+                <!-- Motion Trails -->
+                <div class="stick-trail" style="opacity: 0.1;"></div>
+                <div class="stick-trail" style="opacity: 0.2;"></div>
+                <div class="stick-trail" style="opacity: 0.35;"></div>
+                <div class="stick-trail" style="opacity: 0.5;"></div>
                 <div id="stick-left" class="stick-ball"></div>
             </div>
-            <div class="stick-box">
+            <div class="stick-box" id="box-right">
                 <div class="stick-cross-h"></div>
                 <div class="stick-cross-v"></div>
+                <!-- Motion Trails -->
+                <div class="stick-trail" style="opacity: 0.1;"></div>
+                <div class="stick-trail" style="opacity: 0.2;"></div>
+                <div class="stick-trail" style="opacity: 0.35;"></div>
+                <div class="stick-trail" style="opacity: 0.5;"></div>
                 <div id="stick-right" class="stick-ball"></div>
             </div>
         </div>
@@ -591,8 +608,8 @@
             
             rawMouseX += e.movementX * 0.4;
             rawMouseY += e.movementY * 0.4;
-            rawMouseX = Math.max(-25, Math.min(25, rawMouseX));
-            rawMouseY = Math.max(-25, Math.min(25, rawMouseY));
+            rawMouseX = Math.max(-28, Math.min(28, rawMouseX));
+            rawMouseY = Math.max(-28, Math.min(28, rawMouseY));
         });
 
         function updateMobileModeButtonText() {
@@ -748,6 +765,10 @@
         }
 
         const clock = new THREE.Clock();
+        
+        // Stick trailing history tracking buffers
+        let leftTrailHistory = [];
+        let rightTrailHistory = [];
 
         function animate() {
             requestAnimationFrame(animate);
@@ -833,7 +854,6 @@
             drone.velocity.addScaledVector(accel, dt);
             drone.position.addScaledVector(drone.velocity, dt);
 
-            // FIXED LANDING: Snaps cleanly to ground and zeroes vertical velocity/tumble to prevent double jumping/bouncing
             if (drone.position.y <= 0.3) {
                 drone.position.y = 0.3; 
                 drone.velocity.y = 0;
@@ -879,7 +899,6 @@
                 camera.lookAt(drone.position);
             }
 
-            // FIXED CAMERA CRASH: Enforce a minimum camera height floor offset to prevent it from clipping through the terrain
             if (camera.position.y < 0.5) {
                 camera.position.y = 0.5;
             }
@@ -896,15 +915,38 @@
                 rightX = touchRightValX * 35;
                 rightY = touchRightValY * 35;
             } else {
-                leftY = -(stickyThrottleValue * 2 - 1) * 24; 
-                leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 24;
+                leftY = -(stickyThrottleValue * 2 - 1) * 28; 
+                leftX = (keys.d ? 1 : (keys.a ? -1 : 0)) * 28;
                 rawMouseX *= Math.exp(-12.0 * dt);
                 rawMouseY *= Math.exp(-12.0 * dt);
                 rightX = rawMouseX;
                 rightY = rawMouseY;
             }
+
             stickLeft.style.transform = `translate(calc(-50% + ${leftX}px), calc(-50% + ${leftY}px))`;
             stickRight.style.transform = `translate(calc(-50% + ${rightX}px), calc(-50% + ${rightY}px))`;
+
+            // Update Motion Trail History & Positions
+            leftTrailHistory.unshift({ x: leftX, y: leftY });
+            rightTrailHistory.unshift({ x: rightX, y: rightY });
+            if (leftTrailHistory.length > 5) leftTrailHistory.pop();
+            if (rightTrailHistory.length > 5) rightTrailHistory.pop();
+
+            const leftTrails = document.querySelectorAll('#box-left .stick-trail');
+            leftTrails.forEach((trail, idx) => {
+                if (leftTrailHistory[idx + 1]) {
+                    let pos = leftTrailHistory[idx + 1];
+                    trail.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`;
+                }
+            });
+
+            const rightTrails = document.querySelectorAll('#box-right .stick-trail');
+            rightTrails.forEach((trail, idx) => {
+                if (rightTrailHistory[idx + 1]) {
+                    let pos = rightTrailHistory[idx + 1];
+                    trail.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`;
+                }
+            });
 
             renderer.format = renderer.render(scene, camera);
         }
