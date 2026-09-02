@@ -13,9 +13,9 @@
         
         #osd-container {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 6; pointer-events: none; display: flex; justify-content: center; align-items: center; overflow: hidden; background: transparent;
+            z-index: 6; pointer-events: auto; display: flex; justify-content: center; align-items: center; overflow: hidden; background: transparent; cursor: pointer;
         }
-        #osd-overlay-canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; }
+        #osd-overlay-canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
 
         /* Integrated Bottom Layout Container for Sticks & Side Buttons */
         #rc-sticks-container {
@@ -33,7 +33,7 @@
             width: 85px;
             height: 85px;
             background: rgba(0, 0, 0, 0.45);
-            border-radius: 2px;
+            border-radius: 3px;
             position: relative;
             overflow: hidden;
             pointer-events: auto;
@@ -94,9 +94,6 @@
         .top-btn:hover { background: rgba(40, 50, 70, 0.85); }
 
         #top-menu-bar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 15px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
-        #mobile-mode-btn {
-            color: rgb(255, 235, 59); font-size: 13px; background: rgba(20, 25, 35, 0.85); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,235,59,0.4); cursor: pointer; display: none; font-weight: bold;
-        }
 
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
@@ -108,9 +105,7 @@
 <body>
 
     <div id="canvas-container">
-        <div id="top-menu-bar">           
-            <div id="mobile-mode-btn">MODE: NORMAL</div>
-        </div>
+        <div id="top-menu-bar"></div>
 
         <div id="top-action-bar">
             <button class="top-btn" id="btn-switch-view" title="Switch View">&#127916;</button>
@@ -166,7 +161,6 @@
 
         if (isMobile) {
             document.getElementById('touch-controls').style.display = 'block';
-            document.getElementById('mobile-mode-btn').style.display = 'block';
             document.getElementById('instruction-text').innerHTML = `<b>Ready to Go</b><br><br>`;
         }
 
@@ -422,8 +416,7 @@
         const MODES = {
             1: { name: "NORMAL", maxThrust: 14.0, drag: 0.040, hasAutoLevel: true, maxAngle: 0.5 },
             2: { name: "SPORT",  maxThrust: 21.0, drag: 0.025, hasAutoLevel: true, maxAngle: 0.8 },
-            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.022, hasAutoLevel: false },
-            4: { name: "ACRO",   maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
+            3: { name: "MANUAL", maxThrust: 25.5, drag: 0.009, hasAutoLevel: false }
         };
         let activeMode = 1;
         let cameraMode = "FPV";
@@ -471,6 +464,16 @@
             }
         });
 
+        function cycleFlightMode() {
+            activeMode = (activeMode % 3) + 1;
+        }
+
+        // Tap on screen / OSD container to change mode seamlessly without showing the top indicator
+        document.getElementById('osd-container').addEventListener('click', (e) => {
+            e.stopPropagation();
+            cycleFlightMode();
+        });
+
         function startGameSession() {
             handleResize();
             inst.style.display = 'none';
@@ -489,7 +492,7 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.key.toLowerCase() === 'm') { toggleMotors(); return; }
-            if (['1','2','3','4'].includes(e.key)) { activeMode = parseInt(e.key); updateMobileModeButtonText(); return; }
+            if (['1','2','3'].includes(e.key)) { activeMode = parseInt(e.key); return; }
             if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
             const key = e.key.toLowerCase();
             if (key in keys) keys[key] = true;
@@ -504,16 +507,6 @@
             rawMouseY += e.movementY * 0.4;
             rawMouseX = Math.max(-28, Math.min(28, rawMouseX));
             rawMouseY = Math.max(-28, Math.min(28, rawMouseY));
-        });
-
-        function updateMobileModeButtonText() {
-            const btn = document.getElementById('mobile-mode-btn');
-            if (btn) btn.innerText = `MODE: ${MODES[activeMode].name}`;
-        }
-        document.getElementById('mobile-mode-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            activeMode = (activeMode % 4) + 1;
-            updateMobileModeButtonText();
         });
 
         function setupTouchJoystick(padId, knobId, callback, isStickyY = false) {
