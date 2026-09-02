@@ -20,7 +20,7 @@
         /* RC sticks container positioned near the bottom, raised slightly higher */
         #rc-sticks-container {
             position: absolute;
-            bottom: 50px;
+            bottom: 55px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -158,7 +158,7 @@
         <div id="instructions">
             <div id="menu-content">
                 <h1>DJI VIRTUAL FIGHT</h1>
-                <p id="instruction-text"><b>Ready to Go</b><br><br></p>
+                <p id="instruction-text"><b>Ready to Go</b><br><br>Tap to Start</p>
             </div>
         </div>
     </div>
@@ -168,7 +168,7 @@
 
         if (isMobile) {
             document.getElementById('touch-controls').style.display = 'block';
-            document.getElementById('instruction-text').innerHTML = `<b>Ready to Go</b><br><br>`;
+            document.getElementById('instruction-text').innerHTML = `<b>Ready to Go</b><br><br>Tap to Start (Landscape)`;
         }
 
         const osdCanvas = document.getElementById('osd-overlay-canvas');
@@ -272,7 +272,6 @@
         skyLight.position.set(100, 300, 50);
         scene.add(skyLight);
 
-        // --- REALISTIC ENVIRONMENT & MAP SETUP ---
         const floorCanvas = document.createElement('canvas');
         floorCanvas.width = 512; floorCanvas.height = 512;
         const ctxFloor = floorCanvas.getContext('2d');
@@ -483,6 +482,11 @@
         function startGameSession() {
             handleResize();
             inst.style.display = 'none';
+            
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
+
             if (!isMobile) container.requestPointerLock();
         }
         container.addEventListener('click', startGameSession);
