@@ -17,10 +17,10 @@
         }
         #osd-overlay-canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
 
-        /* Integrated Layout Container for Sticks & Side Buttons moved to upper bit */
+        /* RC sticks container positioned near the bottom, raised slightly higher */
         #rc-sticks-container {
             position: absolute;
-            top: 15px;
+            bottom: 50px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -83,18 +83,24 @@
             transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
+        /* Top action bar made completely transparent */
         #top-action-bar {
             position: absolute; top: max(12px, env(safe-area-inset-top)); right: 15px; display: flex; align-items: center; gap: 8px; z-index: 8; pointer-events: auto;
+            background: transparent;
         }
         .top-btn {
-            background: rgba(20, 25, 35, 0.75); color: #ffffff; border: none;
+            background: transparent; color: #ffffff; border: none;
             width: 36px; height: 36px; border-radius: 6px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center; box-shadow: none;
             font-size: 14px;
         }
-        .top-btn:hover { background: rgba(40, 50, 70, 0.85); }
+        .top-btn:hover { background: rgba(255, 255, 255, 0.1); }
 
-        #top-menu-bar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 15px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
+        /* Top menu bar made completely transparent */
+        #top-menu-bar { 
+            position: absolute; top: max(12px, env(safe-area-inset-top)); left: 15px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; 
+            background: transparent;
+        }
 
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
         #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: none; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
