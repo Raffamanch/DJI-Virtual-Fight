@@ -17,10 +17,10 @@
         }
         #osd-overlay-canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
 
-        /* Integrated Bottom Layout Container for Sticks & Side Buttons */
+        /* Integrated Layout Container for Sticks & Side Buttons moved to upper bit */
         #rc-sticks-container {
             position: absolute;
-            bottom: 25px;
+            top: 15px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -55,7 +55,7 @@
             height: 44px;
             background: rgba(20, 25, 35, 0.85);
             color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            border: none;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -71,14 +71,15 @@
         #touch-controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 9; pointer-events: none; display: none; }
         .touch-pad {
             position: absolute; bottom: 20px; width: 130px; height: 130px;
-            background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05); border: none;
             border-radius: 50%; pointer-events: auto; touch-action: none;
+            opacity: 0.4;
         }
         #touch-left-pad { left: 15px; }
         #touch-right-pad { right: 15px; }
         .touch-knob {
             position: absolute; top: 50%; left: 50%; width: 50px; height: 50px;
-            background: rgba(255, 255, 255, 0.5); border: 2px solid #ffffff; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5); border: none; border-radius: 50%;
             transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
@@ -86,7 +87,7 @@
             position: absolute; top: max(12px, env(safe-area-inset-top)); right: 15px; display: flex; align-items: center; gap: 8px; z-index: 8; pointer-events: auto;
         }
         .top-btn {
-            background: rgba(20, 25, 35, 0.75); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(20, 25, 35, 0.75); color: #ffffff; border: none;
             width: 36px; height: 36px; border-radius: 6px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             font-size: 14px;
@@ -96,7 +97,7 @@
         #top-menu-bar { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 15px; display: flex; align-items: center; gap: 10px; z-index: 8; pointer-events: auto; }
 
         #instructions { position: absolute; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2); color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; z-index: 20; }
-        #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
+        #menu-content { background: rgba(24, 34, 48, 0.95); padding: 25px 30px; border: none; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: auto; max-width: 90%; }
         h1 { margin-bottom: 15px; font-size: 22px; letter-spacing: 1px; color: #ffeb3b; }
         p { font-size: 14px; color: #eee; }
     </style>
@@ -239,7 +240,7 @@
         scene.background = new THREE.Color(0xa4caff);
         scene.fog = new THREE.FogExp2(0xbcd6ff, 0.0018);
 
-        const camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(130, window.innerWidth / window.innerHeight, 0.1, 2000);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -468,7 +469,6 @@
             activeMode = (activeMode % 3) + 1;
         }
 
-        // Tap on screen / OSD container to change mode seamlessly without showing the top indicator
         document.getElementById('osd-container').addEventListener('click', (e) => {
             e.stopPropagation();
             cycleFlightMode();
