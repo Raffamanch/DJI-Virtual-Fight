@@ -728,9 +728,10 @@
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
-                // Fixed pitch logic: pushing stick forward (-touchRightValY) tilts the drone forward (+targetPitch)
+                // Pitch: pushing stick forward (-touchRightValY) tilts the drone forward (+targetPitch)
                 targetPitch = touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
-                targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
+                // Roll fixed: moving stick right (+touchRightValX) tilts the drone right (-targetRoll)
+                targetRoll = -touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
 
                 drone.euler.y -= inputYaw;
                 if (modeCfg.hasAutoLevel) {
