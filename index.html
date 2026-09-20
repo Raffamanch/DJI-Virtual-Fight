@@ -68,14 +68,6 @@
         }
         .hud-circle-btn:hover { background: rgba(40, 50, 70, 0.95); }
 
-        /* Hide the side buttons next to the RC sticks on PC, but keep them on mobile */
-        @media (pointer: fine) and (min-width: 768px) {
-            #btn-motor-toggle,
-            #btn-fullscreen-toggle {
-                display: none !important;
-            }
-        }
-
         #touch-controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; z-index: 9; pointer-events: none; display: none; }
         .touch-pad {
             position: absolute; bottom: 20px; width: 130px; height: 130px;
@@ -191,7 +183,7 @@
         </div>
 
         <div id="instructions">
-            <div id="menu-content">
+            <div id="menu-content" id="menu-box">
                 <h1 id="menu-title">DJI VIRTUAL FIGHT</h1>
                 <p id="instruction-text"><b>Cinematic World Preview</b><br>Immersive 3D Flight Simulator Experience</p>
                 <button class="play-btn-pulse" id="btn-start-game">CLICK TO PLAY</button>
@@ -293,7 +285,7 @@
             const width = window.innerWidth;
             const height = window.innerHeight;
             camera.aspect = width / height;
-            camera.updateProjectionMatrix();
+            camera.updatePointerMatrix();
             renderer.setSize(width, height);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
             resizeOSD();
@@ -736,7 +728,8 @@
 
             if (isMobile) {
                 inputYaw = touchLeftValX * YAW_RATE * dt;
-                targetPitch = -touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
+                // Fixed pitch logic: pushing stick forward (-touchRightValY) tilts the drone forward (+targetPitch)
+                targetPitch = touchRightValY * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
                 targetRoll = touchRightValX * (modeCfg.hasAutoLevel ? modeCfg.maxAngle : 2.5);
 
                 drone.euler.y -= inputYaw;
