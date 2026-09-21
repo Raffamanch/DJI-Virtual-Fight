@@ -199,7 +199,6 @@
             document.getElementById('touch-controls').style.display = 'block';
             document.getElementById('instruction-text').innerHTML = `<b>Cinematic World Preview</b><br>Landscape Mode Recommended`;
         } else {
-            // Hide the side buttons on PC since keyboard controls are available
             document.getElementById('btn-motor-toggle').style.display = 'none';
             document.getElementById('btn-fullscreen-toggle').style.display = 'none';
         }
@@ -622,6 +621,8 @@
                             knob.style.transform = `translate(-50%, -50%)`;
                             callback(0, 0);
                         } else {
+                            const currentDy = parseFloat(knob.dataset.dy || 45);
+                            knob.style.transform = `translate(-50%, calc(-50% + ${currentDy}px))`;
                             callback(0, null);
                         }
                     }
@@ -636,6 +637,11 @@
                 let dy = touch.clientY - (rect.top + rect.height / 2);
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+                
+                if (isStickyY) {
+                    knob.dataset.dy = dy;
+                }
+
                 knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 callback(dx / maxDist, dy / maxDist);
             }
@@ -643,9 +649,18 @@
 
         if (isMobile) {
             const leftKnob = document.getElementById('touch-left-knob');
-            if (leftKnob) leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
-            setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => { touchLeftValX = x; if (y !== null) touchLeftValY = y; }, true);
-            setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => { touchRightValX = x; touchRightValY = y; }, false);
+            if (leftKnob) {
+                leftKnob.style.transform = `translate(-50%, calc(-50% + 45px))`;
+                leftKnob.dataset.dy = 45;
+            }
+            setupTouchJoystick('touch-left-pad', 'touch-left-knob', (x, y) => { 
+                touchLeftValX = x; 
+                if (y !== null) touchLeftValY = y; 
+            }, true);
+            setupTouchJoystick('touch-right-pad', 'touch-right-knob', (x, y) => { 
+                touchRightValX = x; 
+                touchRightValY = y; 
+            }, false);
         }
 
         document.getElementById('btn-switch-view').addEventListener('click', (e) => { e.stopPropagation(); if(gameStarted) cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; });
@@ -663,7 +678,10 @@
             rawMouseX = 0; rawMouseY = 0; touchLeftValX = 0; touchLeftValY = 1.0; touchRightValX = 0; touchRightValY = 0;
 
             const leftKnob = document.getElementById('touch-left-knob');
-            if(leftKnob) leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))';
+            if(leftKnob) {
+                leftKnob.style.transform = 'translate(-50%, calc(-50% + 45px))';
+                leftKnob.dataset.dy = 45;
+            }
             const rightKnob = document.getElementById('touch-right-knob');
             if(rightKnob) rightKnob.style.transform = 'translate(-50%, -50%)';
             triggerDelayedResize();
