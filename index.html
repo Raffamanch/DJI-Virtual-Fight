@@ -7,7 +7,7 @@
     <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/Raffamanch/DJI-Virtual-Fight/main/PNG.ico">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        html, body { width: 100%; height: 100%; overflow: hidden; background: #6b5b45; font-family: consolas; position: fixed; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #6b5b45; font-family: consolas, sans-serif; position: fixed; }
         
         #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; overflow: hidden; }
         canvas { width: 100% !important; height: 100% !important; display: block; }
@@ -17,6 +17,83 @@
             z-index: 6; pointer-events: auto; display: flex; justify-content: center; align-items: center; overflow: hidden; background: transparent; cursor: pointer;
         }
         #osd-overlay-canvas { display: block; image-rendering: pixelated; max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: auto; }
+
+        /* Minecraft / daquavismc Keystrokes Overlay Style */
+        #keystrokes-container {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            pointer-events: none;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: bold;
+        }
+        .ks-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+        .ks-key {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.55);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            transition: background 0.05s ease, transform 0.05s ease, color 0.05s ease, border-color 0.05s ease;
+        }
+        .ks-key.active {
+            background: rgba(255, 255, 255, 0.95);
+            color: #111111;
+            border-color: #ffffff;
+            transform: scale(0.94);
+            text-shadow: none;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+        }
+        .ks-mouse-row .ks-key {
+            width: 78px;
+            height: 48px;
+            font-size: 13px;
+        }
+        .ks-sub {
+            font-size: 10px;
+            margin-top: 2px;
+            opacity: 0.8;
+        }
+        .ks-key.active .ks-sub {
+            color: #222222;
+        }
+        .ks-space {
+            width: 162px;
+            height: 24px;
+        }
+        .ks-space-bar {
+            width: 60px;
+            height: 4px;
+            background: #ffffff;
+            border-radius: 2px;
+            transition: background 0.05s ease;
+        }
+        .ks-key.active .ks-space-bar {
+            background: #111111;
+        }
+
+        /* Hide Keystrokes on Mobile / Small Screens & Touch Devices */
+        @media (max-width: 768px), (pointer: coarse) {
+            #keystrokes-container {
+                display: none !important;
+            }
+        }
 
         #rc-sticks-container {
             position: absolute;
@@ -140,6 +217,33 @@
 <body>
 
     <div id="canvas-container">
+        <!-- Minecraft YouTube Keystrokes UI -->
+        <div id="keystrokes-container">
+            <div class="ks-row">
+                <div class="ks-key" id="ks-w">W</div>
+            </div>
+            <div class="ks-row">
+                <div class="ks-key" id="ks-a">A</div>
+                <div class="ks-key" id="ks-s">S</div>
+                <div class="ks-key" id="ks-d">D</div>
+            </div>
+            <div class="ks-row ks-mouse-row">
+                <div class="ks-key" id="ks-lmb">
+                    LMB
+                    <span class="ks-sub" id="ks-lmb-cps">0 CPS</span>
+                </div>
+                <div class="ks-key" id="ks-rmb">
+                    RMB
+                    <span class="ks-sub" id="ks-rmb-cps">0 CPS</span>
+                </div>
+            </div>
+            <div class="ks-row">
+                <div class="ks-key ks-space" id="ks-space">
+                    <div class="ks-space-bar"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="top-menu-bar"></div>
 
         <div id="top-action-bar">
@@ -198,6 +302,10 @@
         if (isMobile) {
             document.getElementById('touch-controls').style.display = 'block';
             document.getElementById('instruction-text').innerHTML = `<b>Cinematic World Preview</b><br>Landscape Mode Recommended`;
+            
+            // Programmatically hide keystrokes on mobile as well
+            const ksContainer = document.getElementById('keystrokes-container');
+            if (ksContainer) ksContainer.style.display = 'none';
         } else {
             document.getElementById('btn-motor-toggle').style.display = 'none';
             document.getElementById('btn-fullscreen-toggle').style.display = 'none';
@@ -477,7 +585,7 @@
         let cinematicSlowdownFactor = 1.0;
         let tumbleRotationVelocity = new THREE.Vector3(0, 0, 0);
 
-        let keys = { w: false, s: false, a: false, d: false };
+        let keys = { w: false, s: false, a: false, d: false, ' ': false };
         let mousePitch = 0, mouseRoll = 0;
         let rawMouseX = 0, rawMouseY = 0;
 
@@ -491,6 +599,49 @@
         const GRAVITY = 9.81;
         const CAMERA_UPTILT = 30 * (Math.PI / 180);
         let currentThrottle = 0;
+
+        // Keystrokes & CPS Tracking
+        const ksElements = {
+            w: document.getElementById('ks-w'),
+            a: document.getElementById('ks-a'),
+            s: document.getElementById('ks-s'),
+            d: document.getElementById('ks-d'),
+            space: document.getElementById('ks-space'),
+            lmb: document.getElementById('ks-lmb'),
+            rmb: document.getElementById('ks-rmb')
+        };
+
+        let lmbClicks = [];
+        let rmbClicks = [];
+
+        function updateCPS() {
+            if (isMobile) return;
+            const now = Date.now();
+            lmbClicks = lmbClicks.filter(t => now - t < 1000);
+            rmbClicks = rmbClicks.filter(t => now - t < 1000);
+            document.getElementById('ks-lmb-cps').innerText = `${lmbClicks.length} CPS`;
+            document.getElementById('ks-rmb-cps').innerText = `${rmbClicks.length} CPS`;
+        }
+
+        window.addEventListener('mousedown', (e) => {
+            if (isMobile) return;
+            if (e.button === 0) {
+                ksElements.lmb.classList.add('active');
+                lmbClicks.push(Date.now());
+            } else if (e.button === 2) {
+                ksElements.rmb.classList.add('active');
+                rmbClicks.push(Date.now());
+            }
+            updateCPS();
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (isMobile) return;
+            if (e.button === 0) ksElements.lmb.classList.remove('active');
+            if (e.button === 2) ksElements.rmb.classList.remove('active');
+        });
+
+        window.addEventListener('contextmenu', (e) => e.preventDefault());
 
         const motorBtn = document.getElementById('btn-motor-toggle');
         function toggleMotors() {
@@ -571,15 +722,31 @@
         });
 
         document.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (!isMobile) {
+                if (k in ksElements) ksElements[k].classList.add('active');
+                if (k === ' ') ksElements.space.classList.add('active');
+            }
+
             if (!gameStarted) return;
-            if (e.key.toLowerCase() === 'm') { toggleMotors(); return; }
-            if (['1','2','3'].includes(e.key)) { activeMode = parseInt(e.key); return; }
-            if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
-            const key = e.key.toLowerCase();
-            if (key in keys) keys[key] = true;
-            if (key === 'r') resetDrone();
+            if (k === 'm') { toggleMotors(); return; }
+            if (['1','2','3'].includes(k)) { activeMode = parseInt(k); return; }
+            if (k === 'c') { cameraMode = (cameraMode === "FPV") ? "TPV" : "FPV"; return; }
+            if (k in keys) keys[k] = true;
+            if (k === 'r') resetDrone();
         });
-        document.addEventListener('keyup', (e) => { if (!gameStarted) return; const key = e.key.toLowerCase(); if (key in keys) keys[key] = false; });
+
+        document.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (!isMobile) {
+                if (k in ksElements) ksElements[k].classList.remove('active');
+                if (k === ' ') ksElements.space.classList.remove('active');
+            }
+
+            if (!gameStarted) return;
+            if (k in keys) keys[k] = false;
+        });
+
         document.addEventListener('mousemove', (e) => {
             if (!gameStarted || isMobile || document.pointerLockElement !== container) return;
             mousePitch = -e.movementY * MOUSE_SENSITIVITY;
@@ -723,6 +890,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            updateCPS();
             let dt = clock.getDelta(); if (dt > 0.1) dt = 0.1;
             const modeCfg = MODES[activeMode];
 
